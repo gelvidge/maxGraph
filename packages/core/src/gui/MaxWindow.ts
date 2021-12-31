@@ -327,7 +327,7 @@ class MaxWindow extends EventSource {
   visible: boolean = false;
 
   /**
-   * <mxRectangle> that specifies the minimum width and height of the window.
+   * {@link Rectangle} that specifies the minimum width and height of the window.
    * Default is (50, 40).
    */
   minimumSize = new Rectangle(0, 0, 50, 40);
@@ -404,9 +404,7 @@ class MaxWindow extends EventSource {
       this.getElement().style.zIndex = String(index + 1);
       MaxWindow.activeWindow = this;
 
-      this.fireEvent(
-        new EventObject(InternalEvent.ACTIVATE, 'previousWindow', previousWindow)
-      );
+      this.fireEvent(new EventObject(InternalEvent.ACTIVATE, { previousWindow }));
     }
   }
 
@@ -474,7 +472,7 @@ class MaxWindow extends EventSource {
           height = this.div.offsetHeight;
 
           InternalEvent.addGestureListeners(document, null, dragHandler, dropHandler);
-          this.fireEvent(new EventObject(InternalEvent.RESIZE_START, 'event', evt));
+          this.fireEvent(new EventObject(InternalEvent.RESIZE_START, { event: evt }));
           InternalEvent.consume(evt);
         };
 
@@ -489,7 +487,7 @@ class MaxWindow extends EventSource {
               this.setSize(width + dx, height + dy);
             }
 
-            this.fireEvent(new EventObject(InternalEvent.RESIZE, 'event', evt));
+            this.fireEvent(new EventObject(InternalEvent.RESIZE, { event: evt }));
             InternalEvent.consume(evt);
           }
         };
@@ -504,7 +502,7 @@ class MaxWindow extends EventSource {
               dragHandler,
               dropHandler
             );
-            this.fireEvent(new EventObject(InternalEvent.RESIZE_END, 'event', evt));
+            this.fireEvent(new EventObject(InternalEvent.RESIZE_END, { event: evt }));
             InternalEvent.consume(evt);
           }
         };
@@ -546,7 +544,7 @@ class MaxWindow extends EventSource {
   }
 
   /**
-   * Returns an <mxRectangle> that specifies the size for the minimized window.
+   * Returns an {@link Rectangle} that specifies the size for the minimized window.
    * A width or height of 0 means keep the existing width or height. This
    * implementation returns the height of the window title and keeps the width.
    */
@@ -602,7 +600,7 @@ class MaxWindow extends EventSource {
           this.resize.style.visibility = 'hidden';
         }
 
-        this.fireEvent(new EventObject(InternalEvent.MINIMIZE, 'event', evt));
+        this.fireEvent(new EventObject(InternalEvent.MINIMIZE, { event: evt }));
       } else {
         minimized = false;
 
@@ -620,7 +618,7 @@ class MaxWindow extends EventSource {
           this.resize.style.visibility = '';
         }
 
-        this.fireEvent(new EventObject(InternalEvent.NORMALIZE, 'event', evt));
+        this.fireEvent(new EventObject(InternalEvent.NORMALIZE, { event: evt }));
       }
 
       InternalEvent.consume(evt);
@@ -703,7 +701,7 @@ class MaxWindow extends EventSource {
             }px`;
           }
 
-          this.fireEvent(new EventObject(InternalEvent.MAXIMIZE, 'event', evt));
+          this.fireEvent(new EventObject(InternalEvent.MAXIMIZE, { event: evt }));
         } else {
           maximized = false;
 
@@ -741,7 +739,7 @@ class MaxWindow extends EventSource {
             this.resize.style.visibility = '';
           }
 
-          this.fireEvent(new EventObject(InternalEvent.NORMALIZE, 'event', evt));
+          this.fireEvent(new EventObject(InternalEvent.NORMALIZE, { event: evt }));
         }
 
         InternalEvent.consume(evt);
@@ -770,18 +768,18 @@ class MaxWindow extends EventSource {
         const dx = getClientX(evt) - startX;
         const dy = getClientY(evt) - startY;
         this.setLocation(x + dx, y + dy);
-        this.fireEvent(new EventObject(InternalEvent.MOVE, 'event', evt));
+        this.fireEvent(new EventObject(InternalEvent.MOVE, { event: evt }));
         InternalEvent.consume(evt);
       };
 
       const dropHandler = (evt: MouseEvent) => {
         InternalEvent.removeGestureListeners(document, null, dragHandler, dropHandler);
-        this.fireEvent(new EventObject(InternalEvent.MOVE_END, 'event', evt));
+        this.fireEvent(new EventObject(InternalEvent.MOVE_END, { event: evt }));
         InternalEvent.consume(evt);
       };
 
       InternalEvent.addGestureListeners(document, null, dragHandler, dropHandler);
-      this.fireEvent(new EventObject(InternalEvent.MOVE_START, 'event', evt));
+      this.fireEvent(new EventObject(InternalEvent.MOVE_START, { event: evt }));
       InternalEvent.consume(evt);
     });
 
@@ -829,7 +827,7 @@ class MaxWindow extends EventSource {
     this.buttons.appendChild(this.closeImg);
 
     InternalEvent.addGestureListeners(this.closeImg, (evt: MouseEvent) => {
-      this.fireEvent(new EventObject(InternalEvent.CLOSE, 'event', evt));
+      this.fireEvent(new EventObject(InternalEvent.CLOSE, { event: evt }));
 
       if (this.destroyOnClose) {
         this.destroy();
@@ -992,10 +990,16 @@ export const popup = (content: string, isInternalWindow: boolean=false) => {
     // Wraps up the XML content in a textarea
     if (Client.IS_NS) {
       const wnd = window.open();
+      if (!wnd) {
+        throw new Error('Permission not granted to open popup window');
+      }
       wnd.document.writeln(`<pre>${htmlEntities(content)}</pre`);
       wnd.document.close();
     } else {
       const wnd = window.open();
+      if (!wnd) {
+        throw new Error('Permission not granted to open popup window');
+      }
       const pre = wnd.document.createElement('pre');
       pre.innerHTML = htmlEntities(content, false)
         .replace(/\n/g, '<br>')
@@ -1009,7 +1013,7 @@ export const popup = (content: string, isInternalWindow: boolean=false) => {
  * Displays the given error message in a new <MaxWindow> of the given width.
  * If close is true then an additional close button is added to the window.
  * The optional icon specifies the icon to be used for the window. Default
- * is <mxUtils.errorImage>.
+ * is {@link Utils#errorImage}.
  *
  * @param message String specifying the message to be displayed.
  * @param width Integer specifying the width of the window.

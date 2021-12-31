@@ -20,12 +20,13 @@ import {
   NONE,
   NS_SVG,
   NS_XLINK,
+  SHADOWCOLOR,
   WORD_WRAP,
 } from '../../util/constants';
 import Rectangle from '../geometry/Rectangle';
 import AbstractCanvas2D from './AbstractCanvas2D';
 import { getXml } from '../../util/xmlUtils';
-import { importNodeImplementation, isNode, write } from '../../util/domUtils';
+import { isNode, write } from '../../util/domUtils';
 import { htmlEntities, trim } from '../../util/stringUtils';
 import {
   AlignValue,
@@ -86,29 +87,21 @@ class SvgCanvas2D extends AbstractCanvas2D {
     super();
 
     /**
-     * Variable: root
-     *
      * Reference to the container for the SVG content.
      */
     this.root = root;
 
     /**
-     * Variable: gradients
-     *
      * Local cache of gradients for quick lookups.
      */
     this.gradients = {};
 
     /**
-     * Variable: defs
-     *
      * Reference to the defs section of the SVG document. Only for export.
      */
     this.defs = null;
 
     /**
-     * Variable: styleEnabled
-     *
      * Stores the value of styleEnabled passed to the constructor.
      */
     this.styleEnabled = styleEnabled != null ? styleEnabled : false;
@@ -387,7 +380,6 @@ class SvgCanvas2D extends AbstractCanvas2D {
       style,
       `svg{font-family:${DEFAULT_FONTFAMILY};font-size:${DEFAULT_FONTSIZE};fill:none;stroke-miterlimit:10}`
     );
-
     return style;
   }
 
@@ -736,7 +728,7 @@ class SvgCanvas2D extends AbstractCanvas2D {
     if (s.fillColor !== NONE) {
       if (s.gradientColor !== NONE) {
         const id = this.getSvgGradient(
-          s.fillColor,
+          <string>s.fillColor,
           s.gradientColor,
           s.gradientFillAlpha,
           s.gradientAlpha,
@@ -751,7 +743,7 @@ class SvgCanvas2D extends AbstractCanvas2D {
           this.node.setAttribute('fill', `url(#${id})`);
         }
       } else {
-        this.node.setAttribute('fill', s.fillColor.toLowerCase());
+        this.node.setAttribute('fill', (<string>s.fillColor).toLowerCase());
       }
     }
   }
@@ -775,15 +767,15 @@ class SvgCanvas2D extends AbstractCanvas2D {
 
     const s = this.state;
 
-    if (s.strokeColor !== NONE)
+    if (s.strokeColor && s.strokeColor !== NONE) {
       this.node.setAttribute('stroke', s.strokeColor.toLowerCase());
+    }
 
     if (s.alpha < 1 || s.strokeAlpha < 1) {
       this.node.setAttribute('stroke-opacity', String(s.alpha * s.strokeAlpha));
     }
 
     const sw = this.getCurrentStrokeWidth();
-
     if (sw !== 1) {
       this.node.setAttribute('stroke-width', String(sw));
     }
@@ -880,10 +872,10 @@ class SvgCanvas2D extends AbstractCanvas2D {
       shadow.getAttribute('fill') !== 'none' &&
       (!Client.IS_FF || shadow.getAttribute('fill') !== 'transparent')
     ) {
-      shadow.setAttribute('fill', s.shadowColor);
+      shadow.setAttribute('fill', <string>(s.shadowColor ? s.shadow : SHADOWCOLOR));
     }
 
-    if (shadow.getAttribute('stroke') !== 'none' && s.shadowColor !== NONE) {
+    if (shadow.getAttribute('stroke') !== 'none' && s.shadowColor && s.shadowColor !== NONE) {
       shadow.setAttribute('stroke', s.shadowColor);
     }
 
@@ -1228,11 +1220,6 @@ class SvgCanvas2D extends AbstractCanvas2D {
     // Workarounds for print clipping and static position in Safari
     fo.setAttribute('style', 'overflow: visible; text-align: left;');
     fo.setAttribute('pointer-events', 'none');
-
-    // Import needed for older versions of IE
-    if (div.ownerDocument !== document) {
-      div = importNodeImplementation(fo.ownerDocument, div, true);
-    }
 
     fo.appendChild(div);
     group.appendChild(fo);
@@ -1703,7 +1690,9 @@ class SvgCanvas2D extends AbstractCanvas2D {
   updateFont(node: SVGElement) {
     const s = this.state;
 
-    if (s.fontColor !== NONE) node.setAttribute('fill', s.fontColor);
+    if (s.fontColor && s.fontColor !== NONE) {
+      node.setAttribute('fill', s.fontColor);
+    }
 
     if (!this.styleEnabled || s.fontFamily !== DEFAULT_FONTFAMILY) {
       node.setAttribute('font-family', s.fontFamily);

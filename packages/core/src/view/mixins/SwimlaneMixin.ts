@@ -1,6 +1,8 @@
 import Cell from '../cell/Cell';
 import Rectangle from '../geometry/Rectangle';
-import { convertPoint, getValue, mixInto, mod } from '../../util/utils';
+import { mixInto } from '../../util/utils';
+import { convertPoint } from '../../util/styleUtils';
+import { mod } from '../../util/mathUtils';
 import {
   DEFAULT_STARTSIZE,
   DIRECTION,
@@ -25,7 +27,7 @@ declare module '../Graph' {
     getSwimlaneDirection: (style: CellStateStyles) => DirectionValue;
     getActualStartSize: (swimlane: Cell, ignoreState: boolean) => Rectangle;
     isSwimlane: (cell: Cell, ignoreState?: boolean) => boolean;
-    isValidDropTarget: (cell: Cell, cells?: CellArray | null, evt?: MouseEvent | null) => boolean;
+    isValidDropTarget: (cell: Cell, cells?: CellArray, evt?: MouseEvent | null) => boolean;
     getDropTarget: (
       cells: CellArray,
       evt: MouseEvent,
@@ -43,7 +45,7 @@ type PartialGraph = Pick<
   Graph,
   | 'getDefaultParent'
   | 'getCurrentRoot'
-  | 'getModel'
+  | 'getDataModel'
   | 'getView'
   | 'getContainer'
   | 'getCurrentCellStyle'
@@ -123,7 +125,7 @@ const SwimlaneMixin: PartialType = {
       parent = this.getCurrentRoot();
 
       if (!parent) {
-        parent = this.getModel().getRoot();
+        parent = this.getDataModel().getRoot();
       }
     }
 
@@ -277,7 +279,7 @@ const SwimlaneMixin: PartialType = {
    * @param ignoreState Optional boolean that specifies if the cell state should be ignored.
    */
   isSwimlane(cell, ignoreState = false) {
-    if (cell && cell.getParent() !== this.getModel().getRoot() && !cell.isEdge()) {
+    if (cell && cell.getParent() !== this.getDataModel().getRoot() && !cell.isEdge()) {
       return this.getCurrentCellStyle(cell, ignoreState).shape === SHAPE.SWIMLANE;
     }
     return false;
@@ -353,7 +355,7 @@ const SwimlaneMixin: PartialType = {
     while (
       cell &&
       !this.isValidDropTarget(cell, cells, evt) &&
-      !this.getModel().isLayer(cell)
+      !this.getDataModel().isLayer(cell)
     ) {
       cell = cell.getParent();
     }
@@ -366,7 +368,7 @@ const SwimlaneMixin: PartialType = {
       }
     }
 
-    return !this.getModel().isLayer(<Cell>cell) && !parent ? cell : null;
+    return !this.getDataModel().isLayer(<Cell>cell) && !parent ? cell : null;
   },
 
   /**
@@ -389,7 +391,7 @@ const SwimlaneMixin: PartialType = {
   /**
    * Returns {@link swimlaneSelectionEnabled} as a boolean.
    */
-  isSwimlaneSelectionEnabled() {
+  isSwimlaneSelectionEnabled(): boolean {
     return this.swimlaneSelectionEnabled;
   },
 

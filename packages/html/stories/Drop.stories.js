@@ -1,7 +1,7 @@
 import {
   Graph,
-  RubberBand,
-  utils,
+  RubberBandHandler,
+  mathUtils,
   eventUtils,
   InternalEvent,
   Client,
@@ -53,7 +53,7 @@ const Template = ({ label, ...args }) => {
     const graph = new Graph(container);
 
     // Enables rubberband selection
-    if (args.rubberBand) new RubberBand(graph);
+    if (args.rubberBand) new RubberBandHandler(graph);
 
     InternalEvent.addListener(container, 'dragover', function (evt) {
       if (graph.isEnabled()) {
@@ -68,7 +68,7 @@ const Template = ({ label, ...args }) => {
         evt.preventDefault();
 
         // Gets drop location point for vertex
-        const pt = utils.convertPoint(
+        const pt = mathUtils.convertPoint(
           graph.container,
           eventUtils.getClientX(evt),
           eventUtils.getClientY(evt)

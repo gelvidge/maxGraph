@@ -14,7 +14,7 @@ import {
 } from '../../util/styleUtils';
 import InternalEvent from '../event/InternalEvent';
 import Client from '../../Client';
-import mxGuide from '../../util/Guide';
+import Guide from './Guide';
 import { DROP_TARGET_COLOR } from '../../util/constants';
 import Point from '../geometry/Point';
 import {
@@ -29,9 +29,8 @@ import {
 import EventSource from '../event/EventSource';
 import EventObject from '../event/EventObject';
 import { Graph } from '../Graph';
-import Guide from '../../util/Guide';
 import Cell from '../cell/Cell';
-import GraphHandler from '../handler/GraphHandler';
+import SelectionHandler from '../handler/SelectionHandler';
 
 export type DropHandler = (
   graph: Graph,
@@ -107,7 +106,7 @@ class DragSource {
   previewElement: HTMLElement | null = null;
 
   /**
-   * Optional <mxPoint> that specifies the offset of the preview in pixels.
+   * Optional {@link Point} that specifies the offset of the preview in pixels.
    */
   previewOffset: Point | null = null;
 
@@ -523,8 +522,8 @@ class DragSource {
 
     // Guide is only needed if preview element is used
     if (this.isGuidesEnabled() && this.previewElement) {
-      const graphHandler = graph.getPlugin('GraphHandler') as GraphHandler;
-      this.currentGuide = new mxGuide(graph, graphHandler.getGuideStates());
+      const graphHandler = graph.getPlugin('SelectionHandler') as SelectionHandler;
+      this.currentGuide = new Guide(graph, graphHandler.getGuideStates());
     }
 
     if (this.highlightDropTargets) {

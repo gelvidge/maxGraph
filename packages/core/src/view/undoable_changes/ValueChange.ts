@@ -1,5 +1,7 @@
 import Cell from '../cell/Cell';
-import Model from '../other/Model';
+import GraphDataModel from '../GraphDataModel';
+import CodecRegistry from '../../serialization/CodecRegistry';
+import GenericChangeCodec from './GenericChangeCodec';
 
 import type { UndoableChange } from '../../types';
 
@@ -12,12 +14,12 @@ import type { UndoableChange } from '../../types';
  * @class ValueChange
  */
 class ValueChange implements UndoableChange {
-  model: Model;
+  model: GraphDataModel;
   cell: Cell;
   value: unknown;
   previous: unknown;
 
-  constructor(model: Model, cell: Cell, value: unknown) {
+  constructor(model: GraphDataModel, cell: Cell, value: unknown) {
     this.model = model;
     this.cell = cell;
     this.value = value;
@@ -34,4 +36,8 @@ class ValueChange implements UndoableChange {
   }
 }
 
+const __dummy: any = undefined;
+CodecRegistry.register(
+  new GenericChangeCodec(new ValueChange(__dummy, __dummy, __dummy), 'value')
+);
 export default ValueChange;

@@ -1,7 +1,7 @@
 import {
   Graph,
   InternalEvent,
-  RubberBand,
+  RubberBandHandler,
   MaxLog,
   GraphView,
   Point,
@@ -41,12 +41,12 @@ const Template = ({ label, ...args }) => {
 
   // Creates the graph inside the given container
   var graph = new Graph(container);
-  const graphHandler = graph.getPlugin('GraphHandler');
+  const graphHandler = graph.getPlugin('SelectionHandler');
   graphHandler.scaleGrid = true;
   graph.setPanning(true);
 
   // Enables rubberband selection
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   let repaintGrid;
 
@@ -174,15 +174,11 @@ const Template = ({ label, ...args }) => {
   var parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     var v1 = graph.insertVertex(parent, null, 'Hello,', 20, 20, 80, 30);
     var v2 = graph.insertVertex(parent, null, 'World!', 200, 150, 80, 30);
     var e1 = graph.insertEdge(parent, null, '', v1, v2);
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   graph.centerZoom = false;
 

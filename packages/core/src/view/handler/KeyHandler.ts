@@ -9,6 +9,7 @@ import { Graph } from '../Graph';
 import InternalEvent from '../event/InternalEvent';
 import { isAncestorNode } from '../../util/domUtils';
 import { getSource, isAltDown, isConsumed, isControlDown as _isControlDown, isShiftDown } from '../../util/eventUtils';
+import CellEditorHandler from './CellEditorHandler';
 
 /**
  * Event handler that listens to keystroke events. This is not a singleton,
@@ -16,7 +17,7 @@ import { getSource, isAltDown, isConsumed, isControlDown as _isControlDown, isSh
  * element (default).
  *
  * This handler installs a key event listener in the topmost DOM node and
- * processes all events that originate from descandants of <mxGraph.container>
+ * processes all events that originate from descandants of {@link Graph#container}
  * or from the topmost DOM node. The latter means that all unhandled keystrokes
  * are handled by this object regardless of the focused state of the <graph>.
  *
@@ -26,7 +27,7 @@ import { getSource, isAltDown, isConsumed, isControlDown as _isControlDown, isSh
  * (46) and deletes the selection cells if the graph is enabled.
  *
  * ```javascript
- * let keyHandler = new mxKeyHandler(graph);
+ * let keyHandler = new KeyHandler(graph);
  * keyHandler.bindKey(46, (evt)=>
  * {
  *   if (graph.isEnabled())
@@ -57,12 +58,12 @@ import { getSource, isAltDown, isConsumed, isControlDown as _isControlDown, isSh
  * };
  * ```
  *
- * Constructor: mxKeyHandler
+ * Constructor: KeyHandler
  *
  * Constructs an event handler that executes functions bound to specific
  * keystrokes.
  *
- * @param graph Reference to the associated <mxGraph>.
+ * @param graph Reference to the associated {@link Graph}.
  * @param target Optional reference to the event target. If null, the document
  * element is used as the event target, that is, the object where the key
  * event listener is installed.
@@ -85,7 +86,7 @@ class KeyHandler {
   keydownHandler: ((event: KeyboardEvent) => void) | null = null;
 
   /**
-   * Reference to the <mxGraph> associated with this handler.
+   * Reference to the {@link Graph} associated with this handler.
    */
   graph: Graph | null = null;
 
@@ -182,7 +183,7 @@ class KeyHandler {
   }
 
   /**
-   * Returns true if the control key is pressed. This uses <mxEvent.isControlDown>.
+   * Returns true if the control key is pressed. This uses {@link Event#isControlDown}.
    *
    * @param evt Key event whose control key pressed state should be returned.
    */
@@ -216,7 +217,7 @@ class KeyHandler {
   /**
    * Returns true if the event should be processed by this handler, that is,
    * if the event source is either the target, one of its direct children, a
-   * descendant of the <mxGraph.container>, or the <mxGraph.cellEditor> of the
+   * descendant of the {@link Graph#container}, or the {@link Graph#cellEditor} of the
    * <graph>.
    *
    * @param evt Key event that represents the keystroke.
@@ -226,11 +227,12 @@ class KeyHandler {
 
     // Accepts events from the target object or
     // in-place editing inside graph
+    const cellEditor = this.graph?.getPlugin('CellEditorHandler') as CellEditorHandler | null;
     if (
       source === this.target ||
       source.parentNode === this.target ||
-      ((<Graph>this.graph).cellEditor != null &&
-      (<Graph>this.graph).cellEditor.isEventSource(evt))
+      cellEditor != null &&
+      cellEditor.isEventSource(evt)
     ) {
       return true;
     }
@@ -296,7 +298,7 @@ class KeyHandler {
 
   /**
    * Hook to process ESCAPE keystrokes. This implementation invokes
-   * <mxGraph.stopEditing> to cancel the current editing, connecting
+   * {@link Graph#stopEditing} to cancel the current editing, connecting
    * and/or other ongoing modifications.
    *
    * @param evt Key event that represents the keystroke. Possible keycode in this
@@ -313,7 +315,7 @@ class KeyHandler {
    * normally not need to be called, it is called automatically when the
    * window unloads (in IE).
    */
-  destroy() {
+  onDestroy() {
     if (this.target != null && this.keydownHandler != null) {
       InternalEvent.removeListener(this.target, 'keydown', this.keydownHandler);
       this.keydownHandler = null;

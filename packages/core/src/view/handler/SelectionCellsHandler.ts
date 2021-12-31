@@ -33,7 +33,7 @@ import InternalMouseEvent from '../event/InternalMouseEvent';
  * Fires if a cell has been remove from the selection. The <code>state</code>
  * property contains the <CellState> that has been removed.
  *
- * @param graph Reference to the enclosing <mxGraph>.
+ * @param graph Reference to the enclosing {@link Graph}.
  */
 class SelectionCellsHandler extends EventSource implements GraphPlugin {
   static pluginId = 'SelectionCellsHandler';
@@ -52,7 +52,7 @@ class SelectionCellsHandler extends EventSource implements GraphPlugin {
     };
 
     this.graph.addListener(InternalEvent.CHANGE, this.refreshHandler);
-    this.graph.getModel().addListener(InternalEvent.CHANGE, this.refreshHandler);
+    this.graph.getDataModel().addListener(InternalEvent.CHANGE, this.refreshHandler);
     this.graph.getView().addListener(InternalEvent.SCALE, this.refreshHandler);
     this.graph.getView().addListener(InternalEvent.TRANSLATE, this.refreshHandler);
     this.graph
@@ -63,7 +63,7 @@ class SelectionCellsHandler extends EventSource implements GraphPlugin {
   }
 
   /**
-   * Reference to the enclosing <mxGraph>.
+   * Reference to the enclosing {@link Graph}.
    */
   graph: Graph;
 
@@ -83,7 +83,7 @@ class SelectionCellsHandler extends EventSource implements GraphPlugin {
   maxHandlers = 100;
 
   /**
-   * <mxDictionary> that maps from cells to handlers.
+   * {@link Dictionary} that maps from cells to handlers.
    */
   handlers: Dictionary<Cell, EdgeHandler | VertexHandler>;
 
@@ -151,7 +151,7 @@ class SelectionCellsHandler extends EventSource implements GraphPlugin {
 
         if (handler) {
           if (handler.state !== state) {
-            handler.destroy();
+            handler.onDestroy();
             handler = null;
           } else if (!this.isHandlerActive(handler)) {
             // @ts-ignore refresh may exist
@@ -169,8 +169,8 @@ class SelectionCellsHandler extends EventSource implements GraphPlugin {
 
     // Destroys unused handlers
     oldHandlers.visit((key, handler) => {
-      this.fireEvent(new EventObject(InternalEvent.REMOVE, 'state', handler.state));
-      handler.destroy();
+      this.fireEvent(new EventObject(InternalEvent.REMOVE, { state: handler.state }));
+      handler.onDestroy();
     });
 
     // Creates new handlers and updates parent highlight on existing handlers
@@ -182,7 +182,7 @@ class SelectionCellsHandler extends EventSource implements GraphPlugin {
 
         if (!handler) {
           handler = this.graph.createHandler(state);
-          this.fireEvent(new EventObject(InternalEvent.ADD, 'state', state));
+          this.fireEvent(new EventObject(InternalEvent.ADD, { state }));
           this.handlers.put(tmp[i], handler);
         } else {
           handler.updateParentHighlight();
@@ -210,7 +210,7 @@ class SelectionCellsHandler extends EventSource implements GraphPlugin {
       const x = handler.startX;
       const y = handler.startY;
 
-      handler.destroy();
+      handler.onDestroy();
       handler = this.graph.createHandler(state);
 
       if (handler) {
@@ -262,7 +262,7 @@ class SelectionCellsHandler extends EventSource implements GraphPlugin {
   onDestroy() {
     this.graph.removeMouseListener(this);
     this.graph.removeListener(this.refreshHandler);
-    this.graph.getModel().removeListener(this.refreshHandler);
+    this.graph.getDataModel().removeListener(this.refreshHandler);
     this.graph.getView().removeListener(this.refreshHandler);
   }
 }

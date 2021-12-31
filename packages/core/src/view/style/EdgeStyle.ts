@@ -67,7 +67,7 @@ import Geometry from '../geometry/Geometry';
  * the edge straight if it does. The point is then added into the result array,
  * which acts as the return value of the function.
  *
- * The new edge style should then be registered in the <mxStyleRegistry> as follows:
+ * The new edge style should then be registered in the {@link StyleRegistry} as follows:
  * ```javascript
  * mxStyleRegistry.putValue('myEdgeStyle', mxEdgeStyle.MyStyle);
  * ```
@@ -78,8 +78,8 @@ import Geometry from '../geometry/Geometry';
  * model.setStyle(edge, 'edgeStyle=myEdgeStyle');
  * ```
  *
- * Note that the key of the <mxStyleRegistry> entry for the function should
- * be used in string values, unless <mxGraphView.allowEval> is true, in
+ * Note that the key of the {@link StyleRegistry} entry for the function should
+ * be used in string values, unless {@link GraphView#allowEval} is true, in
  * which case you can also use mxEdgeStyle.MyStyle for the value in the
  * cell style above.
  *
@@ -91,7 +91,7 @@ import Geometry from '../geometry/Geometry';
  * ```
  *
  * Note that the object can be used directly when programmatically setting
- * the value, but the key in the <mxStyleRegistry> should be used when
+ * the value, but the key in the {@link StyleRegistry} should be used when
  * setting the value via a key, value pair in a cell style.
  */
 class EdgeStyle {
@@ -472,7 +472,7 @@ class EdgeStyle {
   }
 
   /**
-   * Implements an orthogonal edge style. Use <mxEdgeSegmentHandler>
+   * Implements an orthogonal edge style. Use {@link EdgeSegmentHandler}
    * as an interactive handler for this style.
    *
    * @param state <CellState> that represents the edge to be updated.
@@ -483,8 +483,10 @@ class EdgeStyle {
    * edge.
    */
   static SegmentConnector(state: CellState, sourceScaled: CellState, targetScaled: CellState, controlHints: Point[], result: Point[]) {
+    
     // Creates array of all way- and terminalpoints
-    const pts = EdgeStyle.scalePointArray(state.absolutePoints, state.view.scale);
+    // TODO: Figure out what to do when there are nulls in `pts`!
+    const pts = <Point[]><unknown>EdgeStyle.scalePointArray(<Point[]><unknown>state.absolutePoints, state.view.scale);
     const source = EdgeStyle.scaleCellState(sourceScaled, state.view.scale);
     const target = EdgeStyle.scaleCellState(targetScaled, state.view.scale);
     const tol = 1;
@@ -888,13 +890,13 @@ class EdgeStyle {
   }
 
   /**
-   * Scales an array of <mxPoint>
+   * Scales an array of {@link Point}
    *
-   * @param points array of <mxPoint> to scale
+   * @param points array of {@link Point} to scale
    * @param scale the scaling to divide by
    */
-  static scalePointArray(points: Point[], scale: number) {
-    let result: any = [];
+  static scalePointArray(points: Point[], scale: number): (Point | null)[] | null {
+    let result: (Point | null)[] | null = [];
 
     if (points != null) {
       for (let i = 0; i < points.length; i += 1) {
@@ -951,9 +953,9 @@ class EdgeStyle {
    * edge.
    */
   static OrthConnector(state: CellState, sourceScaled: CellState, targetScaled: CellState, controlHints: Point[], result: Point[]) {
-    const { graph } = state.view;
 
-    const pts = EdgeStyle.scalePointArray(<Point[]>state.absolutePoints, state.view.scale);
+    // TODO: Figure out what to do when there are nulls in `pts`!
+    const pts = <Point[]><unknown>EdgeStyle.scalePointArray(<Point[]>state.absolutePoints, state.view.scale);
     let source = EdgeStyle.scaleCellState(sourceScaled, state.view.scale);
     let target = EdgeStyle.scaleCellState(targetScaled, state.view.scale);
 

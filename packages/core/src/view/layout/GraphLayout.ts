@@ -68,7 +68,7 @@ class GraphLayout {
    * Empty implementation.
    *
    * @param cell <Cell> which has been moved.
-   * @param bounds <mxRectangle> that represents the new cell bounds.
+   * @param bounds {@link Rectangle} that represents the new cell bounds.
    */
   resizeCell(cell: Cell, bounds: Rectangle, prev?: Cell) {}
 
@@ -100,6 +100,7 @@ class GraphLayout {
    * or outgoing. Default is null.
    */
   getConstraint(key: string, cell: Cell, edge?: Cell, source?: boolean): any {
+    // @ts-expect-error
     return this.graph.getCurrentCellStyle(cell)[key];
   }
 
@@ -215,7 +216,7 @@ class GraphLayout {
    * @param cell {@link mxCell} whose ignored state should be returned.
    */
   isEdgeIgnored(edge: Cell): boolean {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
 
     return (
       !edge.isEdge() ||
@@ -243,25 +244,24 @@ class GraphLayout {
    * Determines the offset of the given parent to the parent
    * of the layout
    */
-  getParentOffset(parent: Cell): Point {
+  getParentOffset(parent: Cell | null): Point {
     const result = new Point();
 
     if (parent != null && parent !== this.parent) {
-      const model = this.graph.getModel();
+      const model = this.graph.getDataModel();
 
-      if (model.isAncestor(this.parent, parent)) {
-        let parentGeo = parent.getGeometry();
+      if (this.parent && this.parent.isAncestor(parent)) {
+        let parentGeo = <Geometry>parent.getGeometry();
 
         while (parent !== this.parent) {
           result.x += parentGeo.x;
           result.y += parentGeo.y;
 
-          parent = parent.getParent();
-          parentGeo = parent.getGeometry();
+          parent = <Cell>parent.getParent();
+          parentGeo = <Geometry>parent.getGeometry();
         }
       }
     }
-
     return result;
   }
 
@@ -308,7 +308,7 @@ class GraphLayout {
    * @param y Integer that defines the y-coordinate of the new location.
    */
   setVertexLocation(cell: Cell, x: number, y: number): Rectangle | null {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
     let geometry = cell.getGeometry();
     let result = null;
 
@@ -405,7 +405,7 @@ class GraphLayout {
   }
 
   /**
-   * Shortcut to <mxGraph.updateGroupBounds> with moveGroup set to true.
+   * Shortcut to {@link Graph#updateGroupBounds} with moveGroup set to true.
    */
   arrangeGroups(
     cells: CellArray,

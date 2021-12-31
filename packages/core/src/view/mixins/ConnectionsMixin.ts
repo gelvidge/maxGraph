@@ -3,8 +3,9 @@ import CellState from '../cell/CellState';
 import InternalMouseEvent from '../event/InternalMouseEvent';
 import ConnectionConstraint from '../other/ConnectionConstraint';
 import Rectangle from '../geometry/Rectangle';
-import { DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_WEST } from '../../util/constants';
-import { getRotatedPoint, mixInto, toRadians } from '../../util/utils';
+import { DIRECTION } from '../../util/constants';
+import { mixInto } from '../../util/utils';
+import { getRotatedPoint, toRadians } from '../../util/mathUtils';
 import Cell from '../cell/Cell';
 import CellArray from '../cell/CellArray';
 import EventObject from '../event/EventObject';
@@ -77,7 +78,7 @@ declare module '../Graph' {
   }
 }
 
-type PartialGraph = Pick<Graph, 'getView' | 'getModel' | 'isPortsEnabled'>;
+type PartialGraph = Pick<Graph, 'getView' | 'getDataModel' | 'isPortsEnabled'>;
 type PartialConnections = Pick<
   Graph,
   | 'constrainChildren'
@@ -119,6 +120,7 @@ type PartialConnections = Pick<
   | 'isAllowDanglingEdges'
   | 'isConnectableEdges'
   | 'getPlugin'
+  | 'batchUpdate'
 >;
 type PartialType = PartialGraph & PartialConnections;
 
@@ -160,7 +162,7 @@ const ConnectionsMixin: PartialType = {
       const bounds = <Rectangle>this.getView().getPerimeterBounds(terminalState);
       const direction = terminalState.style.direction;
 
-      if (direction === DIRECTION_NORTH || direction === DIRECTION_SOUTH) {
+      if (direction === DIRECTION.NORTH || direction === DIRECTION.SOUTH) {
         bounds.x += bounds.width / 2 - bounds.height / 2;
         bounds.y += bounds.height / 2 - bounds.width / 2;
         const tmp = bounds.width;
@@ -169,7 +171,6 @@ const ConnectionsMixin: PartialType = {
       }
 
       const alpha = toRadians(terminalState.shape.getShapeRotation());
-
       if (alpha !== 0) {
         const cos = Math.cos(-alpha);
         const sin = Math.sin(-alpha);
@@ -188,7 +189,7 @@ const ConnectionsMixin: PartialType = {
         let flipH = terminalState.style.flipH;
         let flipV = terminalState.style.flipV;
 
-        if (direction === DIRECTION_NORTH || direction === DIRECTION_SOUTH) {
+        if (direction === DIRECTION.NORTH || direction === DIRECTION.SOUTH) {
           const tmp = flipH;
           flipH = flipV;
           flipV = tmp;
@@ -249,7 +250,6 @@ const ConnectionsMixin: PartialType = {
    */
   getConnectionConstraint(edge, terminal, source = false) {
     let point: Point | null = null;
-
     const x = edge.style[source ? 'exitX' : 'entryX'];
 
     if (x !== undefined) {
@@ -265,16 +265,15 @@ const ConnectionsMixin: PartialType = {
     let dy = 0;
 
     if (point) {
-      perimeter = edge.style[source ? 'exitPerimeter' : 'entryPerimeter'];
+      perimeter = edge.style[source ? 'exitPerimeter' : 'entryPerimeter'] || false;
 
       // Add entry/exit offset
-      dx = edge.style[source ? 'exitDx' : 'entryDx'];
-      dy = edge.style[source ? 'exitDy' : 'entryDy'];
+      dx = <number>edge.style[source ? 'exitDx' : 'entryDx'];
+      dy = <number>edge.style[source ? 'exitDy' : 'entryDy'];
 
       dx = Number.isFinite(dx) ? dx : 0;
       dy = Number.isFinite(dy) ? dy : 0;
     }
-
     return new ConnectionConstraint(point, perimeter, null, dx, dy);
   },
 
@@ -291,9 +290,7 @@ const ConnectionsMixin: PartialType = {
    */
   setConnectionConstraint(edge, terminal, source = false, constraint = null) {
     if (constraint) {
-      this.getModel().beginUpdate();
-
-      try {
+      this.batchUpdate(() => {
         if (!constraint || !constraint.point) {
           this.setCellStyles(source ? 'exitX' : 'entryX', null, new CellArray(edge));
           this.setCellStyles(source ? 'exitY' : 'entryY', null, new CellArray(edge));
@@ -341,9 +338,7 @@ const ConnectionsMixin: PartialType = {
             );
           }
         }
-      } finally {
-        this.getModel().endUpdate();
-      }
+      });
     }
   },
 
@@ -366,16 +361,16 @@ const ConnectionsMixin: PartialType = {
 
       // Bounds need to be rotated by 90 degrees for further computation
       if (vertex.style.anchorPointDirection) {
-        if (direction === DIRECTION_NORTH) {
+        if (direction === DIRECTION.NORTH) {
           r1 += 270;
-        } else if (direction === DIRECTION_WEST) {
+        } else if (direction === DIRECTION.WEST) {
           r1 += 180;
-        } else if (direction === DIRECTION_SOUTH) {
+        } else if (direction === DIRECTION.SOUTH) {
           r1 += 90;
         }
 
         // Bounds need to be rotated by 90 degrees for further computation
-        if (direction === DIRECTION_NORTH || direction === DIRECTION_SOUTH) {
+        if (direction === DIRECTION.NORTH || direction === DIRECTION.SOUTH) {
           bounds.rotate90();
         }
       }
@@ -403,7 +398,7 @@ const ConnectionsMixin: PartialType = {
             sin = -1;
           }
 
-          point = getRotatedPoint(point, cos, sin, cx);
+          point = <Point>getRotatedPoint(point, cos, sin, cx);
         }
 
         point = this.getView().getPerimeterPoint(vertex, point, false);
@@ -414,7 +409,7 @@ const ConnectionsMixin: PartialType = {
           let flipH = vertex.style.flipH;
           let flipV = vertex.style.flipV;
 
-          if (direction === DIRECTION_NORTH || direction === DIRECTION_SOUTH) {
+          if (direction === DIRECTION.NORTH || direction === DIRECTION.SOUTH) {
             const temp = flipH;
             flipH = flipV;
             flipV = temp;
@@ -459,8 +454,7 @@ const ConnectionsMixin: PartialType = {
    * connection.
    */
   connectCell(edge, terminal = null, source = false, constraint = null) {
-    this.getModel().beginUpdate();
-    try {
+    this.batchUpdate(() => {
       const previous = edge.getTerminal(source);
       this.cellConnected(edge, terminal, source, constraint);
       this.fireEvent(
@@ -476,9 +470,7 @@ const ConnectionsMixin: PartialType = {
           previous
         )
       );
-    } finally {
-      this.getModel().endUpdate();
-    }
+    });
     return edge;
   },
 
@@ -493,8 +485,7 @@ const ConnectionsMixin: PartialType = {
    * @param constraint {@link mxConnectionConstraint} to be used for this connection.
    */
   cellConnected(edge, terminal, source = false, constraint = null) {
-    this.getModel().beginUpdate();
-    try {
+    this.batchUpdate(() => {
       const previous = edge.getTerminal(source);
 
       // Updates the constraint
@@ -515,7 +506,7 @@ const ConnectionsMixin: PartialType = {
         this.setCellStyles(key, id, new CellArray(edge));
       }
 
-      this.getModel().setTerminal(edge, terminal, source);
+      this.getDataModel().setTerminal(edge, terminal, source);
 
       if (this.isResetEdgesOnConnect()) {
         this.resetEdge(edge);
@@ -534,9 +525,7 @@ const ConnectionsMixin: PartialType = {
           previous
         )
       );
-    } finally {
-      this.getModel().endUpdate();
-    }
+    });
   },
 
   /**
@@ -546,8 +535,7 @@ const ConnectionsMixin: PartialType = {
    * @param cells Array of {@link Cell} to be disconnected.
    */
   disconnectGraph(cells) {
-    this.getModel().beginUpdate();
-    try {
+    this.batchUpdate(() => {
       const { scale, translate: tr } = this.getView();
 
       // Fast lookup for finding cells in array
@@ -585,7 +573,7 @@ const ConnectionsMixin: PartialType = {
                     new Point(pts[0].x / scale - tr.x + dx, pts[0].y / scale - tr.y + dy),
                     true
                   );
-                  this.getModel().setTerminal(cell, null, true);
+                  this.getDataModel().setTerminal(cell, null, true);
                 }
               }
 
@@ -605,19 +593,17 @@ const ConnectionsMixin: PartialType = {
                       new Point(p.x / scale - tr.x + dx, p.y / scale - tr.y + dy),
                       false
                     );
-                    this.getModel().setTerminal(cell, null, false);
+                    this.getDataModel().setTerminal(cell, null, false);
                   }
                 }
               }
 
-              this.getModel().setGeometry(cell, geo);
+              this.getDataModel().setGeometry(cell, geo);
             }
           }
         }
       }
-    } finally {
-      this.getModel().endUpdate();
-    }
+    });
   },
 
   /**
@@ -773,7 +759,6 @@ const ConnectionsMixin: PartialType = {
    */
   setConnectable(connectable) {
     const connectionHandler = this.getPlugin('ConnectionHandler') as ConnectionHandler;
-
     connectionHandler.setEnabled(connectable);
   },
 
@@ -782,7 +767,6 @@ const ConnectionsMixin: PartialType = {
    */
   isConnectable() {
     const connectionHandler = this.getPlugin('ConnectionHandler') as ConnectionHandler;
-
     return connectionHandler.isEnabled();
   },
 };

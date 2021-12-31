@@ -27,7 +27,7 @@ type PartialGraph = Pick<
   Graph,
   | 'getView'
   | 'fireEvent'
-  | 'getModel'
+  | 'getDataModel'
   | 'isEnabled'
   | 'getWarningImage'
   | 'getCellRenderer'
@@ -68,7 +68,7 @@ const OverlaysMixin: PartialType = {
     }
 
     this.fireEvent(
-      new EventObject(InternalEvent.ADD_OVERLAY, 'cell', cell, 'overlay', overlay)
+      new EventObject(InternalEvent.ADD_OVERLAY, { cell, overlay })
     );
     return overlay;
   },
@@ -108,9 +108,7 @@ const OverlaysMixin: PartialType = {
           this.getCellRenderer().redraw(state);
         }
 
-        this.fireEvent(
-          new EventObject(InternalEvent.REMOVE_OVERLAY, 'cell', cell, 'overlay', overlay)
-        );
+        this.fireEvent(new EventObject(InternalEvent.REMOVE_OVERLAY, { cell, overlay }));
       } else {
         overlay = null;
       }
@@ -163,7 +161,7 @@ const OverlaysMixin: PartialType = {
    * remove the overlays from. Default is the root in the model.
    */
   clearCellOverlays(cell = null) {
-    cell = cell ?? this.getModel().getRoot();
+    cell = cell ?? this.getDataModel().getRoot();
 
     if (!cell) return;
 

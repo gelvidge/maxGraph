@@ -1,5 +1,7 @@
 import Cell from '../cell/Cell';
-import Model from '../other/Model';
+import GraphDataModel from '../GraphDataModel';
+import CodecRegistry from '../../serialization/CodecRegistry';
+import GenericChangeCodec from './GenericChangeCodec';
 
 import type { UndoableChange } from '../../types';
 
@@ -9,12 +11,12 @@ import type { UndoableChange } from '../../types';
  * @class StyleChange
  */
 class StyleChange implements UndoableChange {
-  model: Model;
+  model: GraphDataModel;
   cell: Cell;
   style: string | null;
   previous: string | null;
 
-  constructor(model: Model, cell: Cell, style: string | null) {
+  constructor(model: GraphDataModel, cell: Cell, style: string | null) {
     this.model = model;
     this.cell = cell;
     this.style = style;
@@ -31,4 +33,8 @@ class StyleChange implements UndoableChange {
   }
 }
 
+const __dummy: any = undefined;
+CodecRegistry.register(
+  new GenericChangeCodec(new StyleChange(__dummy, __dummy, __dummy), 'style')
+);
 export default StyleChange;

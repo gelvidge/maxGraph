@@ -10,9 +10,11 @@ import TerminalChange from '../undoable_changes/TerminalChange';
 import ValueChange from '../undoable_changes/ValueChange';
 import ChildChange from '../undoable_changes/ChildChange';
 import StyleChange from '../undoable_changes/StyleChange';
-import { Graph } from 'src/view/Graph';
-import Cell from 'src/view/cell/Cell';
-import { UndoableChange } from 'src/types';
+import { Graph } from '../../view/Graph';
+import Cell from '../../view/cell/Cell';
+import { UndoableChange } from '../../types';
+import Geometry from '../geometry/Geometry';
+import Shape from '../geometry/Shape';
 
 /**
  * Provides animation effects.
@@ -36,7 +38,7 @@ class Effects {
    * });
    * ```
    *
-   * @param graph - <mxGraph> that received the changes.
+   * @param graph - {@link Graph} that received the changes.
    * @param changes - Array of changes to be animated.
    * @param done - Optional function argument that is invoked after the
    * last step of the animation.
@@ -58,21 +60,24 @@ class Effects {
           change instanceof ChildChange ||
           change instanceof StyleChange
         ) {
+          // @ts-ignore
           const state = graph.getView().getState(change.cell || change.child, false);
 
           if (state != null) {
             isRequired = true;
 
             if (change.constructor !== GeometryChange || change.cell.isEdge()) {
-              setOpacity(state.shape.node, (100 * step) / maxStep);
+              setOpacity((<Shape>state.shape).node, (100 * step) / maxStep);
             } else {
               const { scale } = graph.getView();
+              const geometry = <Geometry>change.geometry;
+              const previous = <Geometry>change.previous;
 
-              const dx = (change.geometry.x - change.previous.x) * scale;
-              const dy = (change.geometry.y - change.previous.y) * scale;
+              const dx = (geometry.x - previous.x) * scale;
+              const dy = (geometry.y - previous.y) * scale;
 
-              const sx = (change.geometry.width - change.previous.width) * scale;
-              const sy = (change.geometry.height - change.previous.height) * scale;
+              const sx = (geometry.width - previous.width) * scale;
+              const sy = (geometry.height - previous.height) * scale;
 
               if (step === 0) {
                 state.x -= dx;
@@ -110,7 +115,7 @@ class Effects {
   /**
    * Sets the opacity on the given cell and its descendants.
    *
-   * @param graph - <mxGraph> that contains the cells.
+   * @param graph - {@link Graph} that contains the cells.
    * @param cell - <Cell> to set the opacity for.
    * @param opacity - New value for the opacity in %.
    */
@@ -123,7 +128,7 @@ class Effects {
       const childState = graph.getView().getState(child);
 
       if (childState != null) {
-        setOpacity(childState.shape.node, opacity);
+        setOpacity((<Shape>childState.shape).node, opacity);
         Effects.cascadeOpacity(graph, child, opacity);
       }
     }
@@ -136,7 +141,7 @@ class Effects {
         const edgeState = graph.getView().getState(edges[i]);
 
         if (edgeState != null) {
-          setOpacity(edgeState.shape.node, opacity);
+          setOpacity((<Shape>edgeState.shape).node, opacity);
         }
       }
     }

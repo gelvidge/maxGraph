@@ -1,4 +1,4 @@
-import { Graph, constants, RubberBand, cloneUtils } from '@maxgraph/core';
+import { Graph, constants, RubberBandHandler, cloneUtils } from '@maxgraph/core';
 
 import { globalTypes } from '../.storybook/preview';
 
@@ -35,7 +35,7 @@ const Template = ({ label, ...args }) => {
     // once it is set, whereas the above overrides the default value
     state.style.rounded = hover ? '1' : '0';
     state.style.strokeWidth = hover ? '4' : '1';
-    state.style.fontStyle = hover ? constants.FONT_BOLD : '0';
+    state.style.fontStyle = hover ? constants.FONT.BOLD : '0';
   }
 
   // Changes fill color to red on mouseover
@@ -103,22 +103,18 @@ const Template = ({ label, ...args }) => {
   });
 
   // Enables rubberband selection
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   // Gets the default parent for inserting new cells. This
   // is normally the first child of the root (ie. layer 0).
   const parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const v1 = graph.insertVertex(parent, null, 'Hello,', 20, 20, 80, 30);
     const v2 = graph.insertVertex(parent, null, 'World!', 200, 150, 80, 30);
     const e1 = graph.insertEdge(parent, null, '', v1, v2);
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   return container;
 };

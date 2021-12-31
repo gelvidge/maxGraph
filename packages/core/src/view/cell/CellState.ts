@@ -16,9 +16,10 @@ import { ALIGN, NONE } from '../../util/constants';
 import { CellStateStyles } from '../../types';
 import RectangleShape from '../geometry/node/RectangleShape';
 import CellOverlay from './CellOverlay';
+import { Graph } from '../Graph';
 
 /**
- * Represents the current state of a cell in a given <mxGraphView>.
+ * Represents the current state of a cell in a given {@link GraphView}.
  *
  * For edges, the edge label position is stored in <absoluteOffset>.
  *
@@ -34,7 +35,7 @@ import CellOverlay from './CellOverlay';
  * Constructs a new object that represents the current state of the given
  * cell in the specified view.
  *
- * @param view <mxGraphView> that contains the state.
+ * @param view {@link GraphView} that contains the state.
  * @param cell <Cell> that this state represents.
  * @param style Array of key, value pairs that constitute the style.
  */
@@ -56,20 +57,20 @@ class CellState extends Rectangle {
   overlays: Dictionary<CellOverlay, Shape> = new Dictionary();
 
   /**
-   * Reference to the enclosing <mxGraphView>.
+   * Reference to the enclosing {@link GraphView}.
    */
-  view: GraphView;
+  view!: GraphView;
 
   /**
    * Reference to the <Cell> that is represented by this state.
    */
-  cell: Cell;
+  cell!: Cell;
 
   /**
    * Contains an array of key, value pairs that represent the style of the
    * cell.
    */
-  style: CellStateStyles;
+  style!: CellStateStyles;
 
   /**
    * Specifies if the style is invalid. Default is false.
@@ -82,8 +83,8 @@ class CellState extends Rectangle {
   invalid = true;
 
   /**
-   * <mxPoint> that holds the origin for all child cells. Default is a new
-   * empty <mxPoint>.
+   * {@link Point} that holds the origin for all child cells. Default is a new
+   * empty {@link Point}.
    */
   origin: Point;
 
@@ -94,7 +95,7 @@ class CellState extends Rectangle {
   absolutePoints: (null | Point)[] = [];
 
   /**
-   * <mxPoint> that holds the absolute offset. For edges, this is the
+   * {@link Point} that holds the absolute offset. For edges, this is the
    * absolute coordinates of the label position. For vertices, this is the
    * offset of the label relative to the top, left corner of the vertex.
    */
@@ -127,12 +128,12 @@ class CellState extends Rectangle {
   segments: number[] = [];
 
   /**
-   * Holds the <mxShape> that represents the cell graphically.
+   * Holds the {@link Shape} that represents the cell graphically.
    */
   shape: Shape | null = null;
 
   /**
-   * Holds the <mxText> that represents the label of the cell. Thi smay be
+   * Holds the {@link Text} that represents the label of the cell. Thi smay be
    * null if the cell has no label.
    */
   text: TextShape | null = null;
@@ -153,9 +154,13 @@ class CellState extends Rectangle {
 
   constructor(view: GraphView | null=null, cell: Cell | null=null, style: CellStateStyles | null=null) {
     super();
-
-    this.view = view;
-    this.cell = cell;
+    
+    if (view) {
+      this.view = view;
+    }
+    if (cell) {
+      this.cell = cell;
+    }
     this.style = style ?? {};
 
     this.origin = new Point();
@@ -163,11 +168,11 @@ class CellState extends Rectangle {
   }
 
   /**
-   * Returns the <mxRectangle> that should be used as the perimeter of the
+   * Returns the {@link Rectangle} that should be used as the perimeter of the
    * cell.
    *
    * @param border Optional border to be added around the perimeter bounds.
-   * @param bounds Optional <mxRectangle> to be used as the initial bounds.
+   * @param bounds Optional {@link Rectangle} to be used as the initial bounds.
    */
   getPerimeterBounds(
     border: number = 0,
@@ -198,7 +203,7 @@ class CellState extends Rectangle {
   /**
    * Sets the first or last point in <absolutePoints> depending on isSource.
    *
-   * @param point <mxPoint> that represents the terminal point.
+   * @param point {@link Point} that represents the terminal point.
    * @param isSource Boolean that specifies if the first or last point should
    * be assigned.
    */
@@ -328,7 +333,7 @@ class CellState extends Rectangle {
   }
 
   /**
-   * Returns a clone of this <mxPoint>.
+   * Returns a clone of this {@link Point}.
    */
   clone() {
     const clone = new CellState(this.view, this.cell, this.style);
@@ -370,7 +375,7 @@ class CellState extends Rectangle {
    * Destroys the state and all associated resources.
    */
   destroy() {
-    this.view.graph.cellRenderer.destroy(this);
+    (<Graph>this.view.graph).cellRenderer.destroy(this);
   }
 
   /**
@@ -425,7 +430,7 @@ class CellState extends Rectangle {
    * @param state {@link CellState} whose image URL should be returned.
    */
   getImageSrc() {
-    return this.style.image;
+    return this.style.image || null;
   }
 
   /**
@@ -437,7 +442,7 @@ class CellState extends Rectangle {
    * returned.
    */
   getIndicatorColor() {
-    return this.style.indicatorColor;
+    return this.style.indicatorColor || null;
   }
 
   /**
@@ -449,7 +454,7 @@ class CellState extends Rectangle {
    * returned.
    */
   getIndicatorGradientColor() {
-    return this.style.gradientColor;
+    return this.style.gradientColor || null;
   }
 
   /**
@@ -460,7 +465,7 @@ class CellState extends Rectangle {
    * @param state {@link CellState} whose indicator shape should be returned.
    */
   getIndicatorShape() {
-    return this.style.indicatorShape;
+    return this.style.indicatorShape || null;
   }
 
   /**
@@ -471,7 +476,7 @@ class CellState extends Rectangle {
    * @param state {@link CellState} whose indicator image should be returned.
    */
   getIndicatorImageSrc() {
-    return this.style.indicatorImage;
+    return this.style.indicatorImage || null;
   }
 }
 

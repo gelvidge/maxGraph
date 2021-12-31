@@ -1,6 +1,8 @@
 import Geometry from '../geometry/Geometry';
 import Cell from '../cell/Cell';
-import Model from '../other/Model';
+import GraphDataModel from '../GraphDataModel';
+import CodecRegistry from '../../serialization/CodecRegistry';
+import GenericChangeCodec from './GenericChangeCodec';
 
 import type { UndoableChange } from '../../types';
 
@@ -13,12 +15,12 @@ import type { UndoableChange } from '../../types';
  * specified model.
  */
 class GeometryChange implements UndoableChange {
-  model: Model;
+  model: GraphDataModel;
   cell: Cell;
   geometry: Geometry | null;
   previous: Geometry | null;
 
-  constructor(model: Model, cell: Cell, geometry: Geometry | null) {
+  constructor(model: GraphDataModel, cell: Cell, geometry: Geometry | null) {
     this.model = model;
     this.cell = cell;
     this.geometry = geometry;
@@ -35,4 +37,8 @@ class GeometryChange implements UndoableChange {
   }
 }
 
+const __dummy: any = undefined;
+CodecRegistry.register(
+  new GenericChangeCodec(new GeometryChange(__dummy, __dummy, __dummy), 'geometry')
+);
 export default GeometryChange;

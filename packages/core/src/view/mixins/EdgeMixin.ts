@@ -1,6 +1,8 @@
 import Cell from '../cell/Cell';
 import CellArray from '../cell/CellArray';
-import { findNearestSegment, mixInto, removeDuplicates } from '../../util/utils';
+import { mixInto } from '../../util/utils';
+import { removeDuplicates } from '../../util/arrayUtils';
+import { findNearestSegment } from '../../util/mathUtils';
 import Geometry from '../geometry/Geometry';
 import EventObject from '../event/EventObject';
 import InternalEvent from '../event/InternalEvent';
@@ -80,7 +82,7 @@ type PartialGraph = Pick<
   Graph,
   | 'batchUpdate'
   | 'fireEvent'
-  | 'getModel'
+  | 'getDataModel'
   | 'getView'
   | 'getChildCells'
   | 'isValidAncestor'
@@ -299,14 +301,14 @@ const EdgeMixin: PartialType = {
         const style = edge.getStyle();
 
         if (!style || style.length === 0) {
-          this.getModel().setStyle(edge, this.alternateEdgeStyle);
+          this.getDataModel().setStyle(edge, this.alternateEdgeStyle);
         } else {
-          this.getModel().setStyle(edge, null);
+          this.getDataModel().setStyle(edge, null);
         }
 
         // Removes all existing control points
         this.resetEdge(edge);
-        this.fireEvent(new EventObject(InternalEvent.FLIP_EDGE, 'edge', edge));
+        this.fireEvent(new EventObject(InternalEvent.FLIP_EDGE, { edge }));
       });
     }
     return edge;
@@ -315,11 +317,11 @@ const EdgeMixin: PartialType = {
   /**
    * Splits the given edge by adding the newEdge between the previous source
    * and the given cell and reconnecting the source of the given edge to the
-   * given cell. This method fires <mxEvent.SPLIT_EDGE> while the transaction
+   * given cell. This method fires {@link Event#SPLIT_EDGE} while the transaction
    * is in progress. Returns the new edge that was inserted.
    *
    * @param edge <Cell> that represents the edge to be splitted.
-   * @param cells <mxCells> that represents the cells to insert into the edge.
+   * @param cells {@link Cells} that represents the cells to insert into the edge.
    * @param newEdge <Cell> that represents the edge to be inserted.
    * @param dx Optional integer that specifies the vector to move the cells.
    * @param dy Optional integer that specifies the vector to move the cells.
@@ -351,7 +353,7 @@ const EdgeMixin: PartialType = {
           if (geo) {
             geo = geo.clone();
             geo.points = (<Point[]>geo.points).slice(idx);
-            this.getModel().setGeometry(edge, geo);
+            this.getDataModel().setGeometry(edge, geo);
           }
         }
       }
@@ -650,8 +652,7 @@ const EdgeMixin: PartialType = {
       dict.put(cells[i], true);
     }
 
-    this.getModel().beginUpdate();
-    try {
+    this.batchUpdate(() => {
       for (let i = 0; i < cells.length; i += 1) {
         const edges = cells[i].getEdges();
 
@@ -673,9 +674,7 @@ const EdgeMixin: PartialType = {
 
         this.resetEdges(cells[i].getChildren());
       }
-    } finally {
-      this.getModel().endUpdate();
-    }
+    });
   },
 
   /**
@@ -687,10 +686,10 @@ const EdgeMixin: PartialType = {
     let geo = edge.getGeometry();
 
     // Resets the control points
-    if (geo && (<Point[]>geo.points).length > 0) {
+    if (geo && geo.points && (<Point[]>geo.points).length > 0) {
       geo = geo.clone();
       geo.points = [];
-      this.getModel().setGeometry(edge, geo);
+      this.getDataModel().setGeometry(edge, geo);
     }
 
     return edge;

@@ -15,6 +15,7 @@ import {
   SHADOW_OPACITY,
 } from '../../util/constants';
 import { getOuterHtml, isNode } from '../../util/domUtils';
+import { DirectionValue, TextDirectionValue } from '../../types';
 
 /**
  * Base class for all canvases. The following methods make up the public
@@ -29,7 +30,7 @@ import { getOuterHtml, isNode } from '../../util/domUtils';
  *   <setFontFamily>, <setFontStyle>
  * - <setShadow>, <setShadowColor>, <setShadowAlpha>, <setShadowOffset>
  * - <rect>, <roundrect>, <ellipse>, <image>, <text>
- * - <begin>, <moveTo>, <lineTo>, <quadTo>, <curveTo>
+ * - <begin>, {@link oveTo}, <lineTo>, <quadTo>, <curveTo>
  * - <stroke>, <fill>, <fillAndStroke>
  *
  * <AbstractCanvas2D.arcTo> is an additional method for drawing paths. This is
@@ -43,18 +44,16 @@ import { getOuterHtml, isNode } from '../../util/domUtils';
 class mxXmlCanvas2D extends AbstractCanvas2D {
   constructor(root: SVGElement) {
     super();
-
-    /**
-     * Variable: root
-     *
-     * Reference to the container for the SVG content.
-     */
+    
     this.root = root;
 
     // Writes default settings;
     this.writeDefaults();
   }
 
+  /**
+   * Reference to the container for the SVG content.
+   */
   root: SVGElement;
 
   /**
@@ -102,8 +101,12 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
   /**
    * Returns a formatted number with 2 decimal places.
    */
-  format(value: string): number {
-    return parseFloat(parseFloat(value).toFixed(2));
+  format(value: string | number): number {
+    if (typeof value === 'string') {
+      return parseFloat(parseFloat(value).toFixed(2));
+    } else {
+      return parseFloat(value.toFixed(2));
+    }
   }
 
   /**
@@ -242,7 +245,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    *
    * @param value Hexadecimal representation of the color or 'none'.
    */
-  setFillColor(value: string): void {
+  setFillColor(value: string | null=null): void {
     if (value === NONE) {
       value = null;
     }
@@ -268,24 +271,34 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    * @param y y-coordinate of the gradient region.
    * @param w Width of the gradient region.
    * @param h Height of the gradient region.
-   * @param direction One of <mxConstants.DIRECTION_NORTH>, <mxConstants.DIRECTION_EAST>,
-   * <mxConstants.DIRECTION_SOUTH> or <mxConstants.DIRECTION_WEST>.
+   * @param direction One of {@link Constants#DIRECTION_NORTH}, {@link Constants#DIRECTION_EAST},
+   * {@link Constants#DIRECTION_SOUTH} or {@link Constants#DIRECTION_WEST}.
    * @param alpha1 Optional alpha of the start color. Default is 1. Possible values
    * are between 1 (opaque) and 0 (transparent).
    * @param alpha2 Optional alpha of the end color. Default is 1. Possible values
    * are between 1 (opaque) and 0 (transparent).
    */
-  setGradient(color1, color2, x, y, w, h, direction, alpha1, alpha2) {
+  setGradient(
+    color1: string | null, 
+    color2: string | null, 
+    x: number, 
+    y: number, 
+    w: number, 
+    h: number, 
+    direction: DirectionValue, 
+    alpha1: number=1.0, 
+    alpha2: number=1.0
+  ) {
     if (color1 != null && color2 != null) {
       super.setGradient(color1, color2, x, y, w, h, direction, alpha1, alpha2);
 
       const elem = this.createElement('gradient');
       elem.setAttribute('c1', color1);
       elem.setAttribute('c2', color2);
-      elem.setAttribute('x', this.format(x));
-      elem.setAttribute('y', this.format(y));
-      elem.setAttribute('w', this.format(w));
-      elem.setAttribute('h', this.format(h));
+      elem.setAttribute('x', String(this.format(x)));
+      elem.setAttribute('y', String(this.format(y)));
+      elem.setAttribute('w', String(this.format(w)));
+      elem.setAttribute('h', String(this.format(h)));
 
       // Default direction is south
       if (direction != null) {
@@ -293,11 +306,11 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
       }
 
       if (alpha1 != null) {
-        elem.setAttribute('alpha1', alpha1);
+        elem.setAttribute('alpha1', String(alpha1));
       }
 
       if (alpha2 != null) {
-        elem.setAttribute('alpha2', alpha2);
+        elem.setAttribute('alpha2', String(alpha2));
       }
 
       this.root.appendChild(elem);
@@ -309,7 +322,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    *
    * @param value Hexadecimal representation of the color or 'none'.
    */
-  setStrokeColor(value: string): void {
+  setStrokeColor(value: string | null=null): void {
     if (value === NONE) {
       value = null;
     }
@@ -457,7 +470,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    *
    * @param value Hexadecimal representation of the color or 'none'.
    */
-  setFontColor(value: string): void {
+  setFontColor(value: string | null=null): void {
     if (this.textEnabled) {
       if (value === NONE) {
         value = null;
@@ -481,7 +494,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    *
    * @param value Hexadecimal representation of the color or 'none'.
    */
-  setFontBackgroundColor(value: string): void {
+  setFontBackgroundColor(value: string | null=null): void {
     if (this.textEnabled) {
       if (value === NONE) {
         value = null;
@@ -505,7 +518,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    *
    * @param value Hexadecimal representation of the color or 'none'.
    */
-  setFontBorderColor(value: string): void {
+  setFontBorderColor(value: string | null=null): void {
     if (this.textEnabled) {
       if (value === NONE) {
         value = null;
@@ -573,7 +586,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    * @param value Numeric representation of the font family. This is the sum of the
    * font styles from {@link mxConstants}.
    */
-  setFontStyle(value: string): void {
+  setFontStyle(value: number | null=0): void {
     if (this.textEnabled) {
       if (value == null) {
         value = 0;
@@ -587,7 +600,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
       }
 
       const elem = this.createElement('fontstyle');
-      elem.setAttribute('style', value);
+      elem.setAttribute('style', String(value));
       this.root.appendChild(elem);
     }
   }
@@ -616,7 +629,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    *
    * @param value Hexadecimal representation of the color or 'none'.
    */
-  setShadowColor(value: string): void {
+  setShadowColor(value: string | null=null): void {
     if (this.compressed) {
       if (value === NONE) {
         value = null;
@@ -626,7 +639,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
         return;
       }
 
-      this.mxAbstractCanvas2setShadowColor(value);
+      super.setShadowColor(value);
     }
 
     const elem = this.createElement('shadowcolor');
@@ -644,11 +657,11 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
       if (this.state.shadowAlpha === value) {
         return;
       }
-      this.mxAbstractCanvas2setShadowAlpha(value);
+      super.setShadowAlpha(value);
     }
 
     const elem = this.createElement('shadowalpha');
-    elem.setAttribute('alpha', value);
+    elem.setAttribute('alpha', String(value));
     this.root.appendChild(elem);
   }
 
@@ -663,7 +676,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
       if (this.state.shadowDx === dx && this.state.shadowDy === dy) {
         return;
       }
-      this.mxAbstractCanvas2setShadowOffset(dx, dy);
+      super.setShadowOffset(dx, dy);
     }
 
     const elem = this.createElement('shadowoffset');
@@ -739,7 +752,16 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    * @param flipH Boolean indicating if the image should be flipped horizontally.
    * @param flipV Boolean indicating if the image should be flipped vertically.
    */
-  image(x, y, w, h, src, aspect, flipH, flipV) {
+  image(
+    x: number, 
+    y: number, 
+    w: number, 
+    h: number, 
+    src: string, 
+    aspect: boolean, 
+    flipH: boolean, 
+    flipV: boolean
+  ) {
     src = this.converter.convert(src);
 
     // LATER: Add option for embedding images as base64.
@@ -862,12 +884,26 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
    * @param overflow Specifies the overflow behaviour of the label. Requires w > 0 and/or h > 0.
    * @param clip Boolean that specifies if the label should be clipped. Requires w > 0 and/or h > 0.
    * @param rotation Number that specifies the angle of the rotation around the anchor point of the text.
-   * @param dir Optional string that specifies the text direction. Possible values are rtl and lrt.
+   * @param dir Optional string that specifies the text direction. Possible values are rtl and ltr.
    */
-  text(x, y, w, h, str, align, valign, wrap, format, overflow, clip, rotation, dir) {
+  text(
+    x: number, 
+    y: number, 
+    w: number, 
+    h: number, 
+    str: string | HTMLElement, 
+    align: string | null=null, 
+    valign: string | null=null, 
+    wrap: boolean | null=null, 
+    format: string | null=null, 
+    overflow: string | null=null, 
+    clip: boolean | null=null, 
+    rotation: number | null=null, 
+    dir: TextDirectionValue | null=null
+  ): void {
     if (this.textEnabled && str != null) {
       if (isNode(str)) {
-        str = getOuterHtml(str);
+        str = getOuterHtml(<HTMLElement>str);
       }
 
       const elem = this.createElement('text');
@@ -875,7 +911,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
       elem.setAttribute('y', String(this.format(y)));
       elem.setAttribute('w', String(this.format(w)));
       elem.setAttribute('h', String(this.format(h)));
-      elem.setAttribute('str', str);
+      elem.setAttribute('str', <string>str);
 
       if (align != null) {
         elem.setAttribute('align', align);
@@ -902,7 +938,7 @@ class mxXmlCanvas2D extends AbstractCanvas2D {
       }
 
       if (rotation != null) {
-        elem.setAttribute('rotation', rotation);
+        elem.setAttribute('rotation', String(rotation));
       }
 
       if (dir != null) {

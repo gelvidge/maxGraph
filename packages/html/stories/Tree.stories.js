@@ -6,7 +6,7 @@ import {
   ImageBox,
   Client,
   EdgeStyle,
-  mxKeyHandler,
+  KeyHandler,
   CompactTreeLayout,
   LayoutManager,
   Rectangle,
@@ -197,7 +197,7 @@ const Template = ({ label, ...args }) => {
   panningHandler.useLeftButtonForPanning = true;
 
   // Stops editing on enter or escape keypress
-  const keyHandler = new mxKeyHandler(graph);
+  const keyHandler = new KeyHandler(graph);
 
   // Enables automatic layout on the graph and installs
   // a tree layout for all groups who's children are
@@ -221,8 +221,7 @@ const Template = ({ label, ...args }) => {
   const parent = graph.getDefaultParent();
 
   // Adds the root vertex of the tree
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const w = graph.container.offsetWidth;
     const root = graph.insertVertex(parent, 'treeRoot', 'Root', w / 2 - 30, 20, 60, 40);
 
@@ -255,10 +254,7 @@ const Template = ({ label, ...args }) => {
 
     const v31 = graph.insertVertex(parent, 'v31', 'Child 3.1', 0, 0, 60, 40);
     graph.insertEdge(parent, null, '', v3, v31);
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   return container;
 };

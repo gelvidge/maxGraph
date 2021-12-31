@@ -4,10 +4,13 @@
  * Updated to ES9 syntax by David Morrissey 2021
  * Type definitions from the typed-mxgraph project
  */
-import CompactTreeLayout from './CompactTreeLayout';
+import {
+  CompactTreeLayout,
+  _mxCompactTreeLayoutLine,
+  _mxCompactTreeLayoutNode
+} from './CompactTreeLayout';
 import Cell from '../cell/Cell';
 import { Graph } from '../Graph';
-import CellArray from '../cell/CellArray';
 
 /**
  * Extends {@link mxGraphLayout} to implement a radial tree algorithm. This
@@ -73,32 +76,32 @@ class RadialTreeLayout extends CompactTreeLayout {
   /**
    * Array of leftmost x coordinate of each row
    */
-  rowMinX: number[] = [];
+  rowMinX: { [key: number]: number } = {};
 
   /**
    * Array of rightmost x coordinate of each row
    */
-  rowMaxX: number[] = [];
+  rowMaxX: { [key: number]: number } = {};
 
   /**
    * Array of x coordinate of leftmost vertex of each row
    */
-  rowMinCenX: number[] = [];
+  rowMinCenX: { [key: number]: number } = {};
 
   /**
    * Array of x coordinate of rightmost vertex of each row
    */
-  rowMaxCenX: number[] = [];
+  rowMaxCenX: { [key: number]: number } = {};
 
   /**
    * Array of y deltas of each row behind root vertex, also the radius in the tree
    */
-  rowRadi: number[] = [];
+  rowRadi: { [key: number]: number } = {};
 
   /**
    * Array of vertices on each row
    */
-  row: CellArray = new CellArray();
+  row: _mxCompactTreeLayoutNode[][] = [];
 
   /**
    * Returns a boolean indicating if the given {@link mxCell} should be ignored as a vertex.
@@ -113,10 +116,10 @@ class RadialTreeLayout extends CompactTreeLayout {
   }
 
   /**
-   * Implements <mxGraphLayout.execute>.
+   * Implements {@link GraphLayout#execute}.
    *
    * If the parent has any connected edges, then it is used as the root of
-   * the tree. Else, <mxGraph.findTreeRoots> will be used to find a suitable
+   * the tree. Else, {@link Graph#findTreeRoots} will be used to find a suitable
    * root node within the set of children of the given parent.
    *
    * @param parent    {@link mxCell} whose children should be laid out.
@@ -132,7 +135,7 @@ class RadialTreeLayout extends CompactTreeLayout {
     super.execute(parent, root || undefined);
 
     let bounds = null;
-    const rootBounds = this.getVertexBounds(this.root);
+    const rootBounds = this.getVertexBounds(<Cell>this.root);
     this.centerX = rootBounds.x + rootBounds.width / 2;
     this.centerY = rootBounds.y + rootBounds.height / 2;
 
@@ -143,7 +146,7 @@ class RadialTreeLayout extends CompactTreeLayout {
       bounds.add(vertexBounds);
     }
 
-    this.calcRowDims([this.node], 0);
+    this.calcRowDims([<_mxCompactTreeLayoutLine>this.node], 0);
 
     let maxLeftGrad = 0;
     let maxRightGrad = 0;
@@ -169,7 +172,7 @@ class RadialTreeLayout extends CompactTreeLayout {
       for (let j = 0; j < this.row[i].length; j++) {
         const row = this.row[i];
         const node = row[j];
-        const vertexBounds = this.getVertexBounds(node.cell);
+        const vertexBounds = this.getVertexBounds(<Cell>node.cell);
         const xProportion =
           (vertexBounds.x + vertexBounds.width / 2 - xLeftLimit) / fullWidth;
         const theta = 2 * Math.PI * xProportion;
@@ -188,7 +191,7 @@ class RadialTreeLayout extends CompactTreeLayout {
         let totalTheta = 0;
 
         while (child != null) {
-          totalTheta += child.theta;
+          totalTheta += <number>child.theta;
           counter++;
           child = child.next;
         }
@@ -196,12 +199,12 @@ class RadialTreeLayout extends CompactTreeLayout {
         if (counter > 0) {
           const averTheta = totalTheta / counter;
 
-          if (averTheta > node.theta && j < row.length - 1) {
+          if (averTheta > <number>node.theta && j < row.length - 1) {
             const nextTheta = row[j + 1].theta;
-            node.theta = Math.min(averTheta, nextTheta - Math.PI / 10);
-          } else if (averTheta < node.theta && j > 0) {
+            node.theta = Math.min(averTheta, <number>nextTheta - Math.PI / 10);
+          } else if (averTheta < <number>node.theta && j > 0) {
             const lastTheta = row[j - 1].theta;
-            node.theta = Math.max(averTheta, lastTheta + Math.PI / 10);
+            node.theta = Math.max(averTheta, <number>lastTheta + Math.PI / 10);
           }
         }
       }
@@ -212,11 +215,11 @@ class RadialTreeLayout extends CompactTreeLayout {
       for (let j = 0; j < this.row[i].length; j++) {
         const row = this.row[i];
         const node = row[j];
-        const vertexBounds = this.getVertexBounds(node.cell);
+        const vertexBounds = this.getVertexBounds(<Cell>node.cell);
         this.setVertexLocation(
-          node.cell,
-          this.centerX - vertexBounds.width / 2 + this.rowRadi[i] * Math.cos(node.theta),
-          this.centerY - vertexBounds.height / 2 + this.rowRadi[i] * Math.sin(node.theta)
+          <Cell>node.cell,
+          this.centerX - vertexBounds.width / 2 + this.rowRadi[i] * Math.cos(<number>node.theta),
+          this.centerY - vertexBounds.height / 2 + this.rowRadi[i] * Math.sin(<number>node.theta)
         );
       }
     }
@@ -228,16 +231,16 @@ class RadialTreeLayout extends CompactTreeLayout {
    * @param row      Array of internal nodes, the children of which are to be processed.
    * @param rowNum   Integer indicating which row is being processed.
    */
-  calcRowDims(row: number[], rowNum: number): void {
+  calcRowDims(row: _mxCompactTreeLayoutNode[], rowNum: number): void {
     if (row == null || row.length === 0) {
       return;
     }
 
     // Place root's children proportionally around the first level
-    this.rowMinX[rowNum] = this.centerX;
-    this.rowMaxX[rowNum] = this.centerX;
-    this.rowMinCenX[rowNum] = this.centerX;
-    this.rowMaxCenX[rowNum] = this.centerX;
+    this.rowMinX[rowNum] = <number>this.centerX;
+    this.rowMaxX[rowNum] = <number>this.centerX;
+    this.rowMinCenX[rowNum] = <number>this.centerX;
+    this.rowMaxCenX[rowNum] = <number>this.centerX;
     this.row[rowNum] = [];
 
     let rowHasChildren = false;
@@ -247,7 +250,7 @@ class RadialTreeLayout extends CompactTreeLayout {
 
       while (child != null) {
         const { cell } = child;
-        const vertexBounds = this.getVertexBounds(cell);
+        const vertexBounds = this.getVertexBounds(<Cell>cell);
 
         this.rowMinX[rowNum] = Math.min(vertexBounds.x, this.rowMinX[rowNum]);
         this.rowMaxX[rowNum] = Math.max(
@@ -262,7 +265,7 @@ class RadialTreeLayout extends CompactTreeLayout {
           vertexBounds.x + vertexBounds.width / 2,
           this.rowMaxCenX[rowNum]
         );
-        this.rowRadi[rowNum] = vertexBounds.y - this.getVertexBounds(this.root).y;
+        this.rowRadi[rowNum] = vertexBounds.y - this.getVertexBounds(<Cell>this.root).y;
 
         if (child.child != null) {
           rowHasChildren = true;

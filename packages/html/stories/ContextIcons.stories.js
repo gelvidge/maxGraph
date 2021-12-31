@@ -1,9 +1,10 @@
 import {
   Graph,
   InternalEvent,
-  RubberBand,
+  RubberBandHandler,
   eventUtils,
-  utils,
+  mathUtils,
+  domUtils,
   VertexHandler,
 } from '@maxgraph/core';
 
@@ -48,7 +49,7 @@ const Template = ({ label, ...args }) => {
 
       // Workaround for event redirection via image tag in quirks and IE8
       const createImage = (src) => {
-        return utils.createImage(src);
+        return domUtils.createImage(src);
       };
 
       // Delete
@@ -89,7 +90,7 @@ const Template = ({ label, ...args }) => {
       img.style.width = '16px';
       img.style.height = '16px';
 
-      const graphHandler = graph.getPlugin('GraphHandler');
+      const graphHandler = graph.getPlugin('SelectionHandler');
       const connectionHandler = graph.getPlugin('ConnectionHandler');
 
       InternalEvent.addGestureListeners(img, (evt) => {
@@ -113,7 +114,7 @@ const Template = ({ label, ...args }) => {
       img.style.height = '16px';
 
       InternalEvent.addGestureListeners(img, (evt) => {
-        const pt = utils.convertPoint(
+        const pt = mathUtils.convertPoint(
           this.graph.container,
           eventUtils.getClientX(evt),
           eventUtils.getClientY(evt)
@@ -173,7 +174,7 @@ const Template = ({ label, ...args }) => {
   // graph.setResizeContainer(true);
 
   // Enables rubberband selection
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   // Gets the default parent for inserting new cells. This
   // is normally the first child of the root (ie. layer 0).

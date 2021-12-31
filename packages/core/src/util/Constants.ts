@@ -37,13 +37,13 @@ export const enum RENDERING_HINT {
 };
 
 /**
- * - DIALECT_SVG: Defines the SVG display dialect name.
+ * - DIALECT.SVG: Defines the SVG display dialect name.
  *
- * - DIALECT_MIXEDHTML: Defines the mixed HTML display dialect name.
+ * - DIALECT.MIXEDHTML: Defines the mixed HTML display dialect name.
  *
- * - DIALECT_PREFERHTML: Defines the preferred HTML display dialect name.
+ * - DIALECT.PREFERHTML: Defines the preferred HTML display dialect name.
  *
- * - DIALECT_STRICTHTML: Defines the strict HTML display dialect.
+ * - DIALECT.STRICTHTML: Defines the strict HTML display dialect.
  */
 export const enum DIALECT {
     SVG = 'svg',
@@ -116,13 +116,13 @@ export const DEFAULT_INVALID_COLOR = '#FF0000';
 
 /**
  * Specifies the default highlight color for shape outlines.
- * Default is #0000FF. This is used in <mxEdgeHandler>.
+ * Default is #0000FF. This is used in {@link EdgeHandler}.
  */
 export const OUTLINE_HIGHLIGHT_COLOR = '#00FF00';
 
 /**
  * Defines the strokewidth to be used for shape outlines.
- * Default is 5. This is used in <mxEdgeHandler>.
+ * Default is 5. This is used in {@link EdgeHandler}.
  */
 export const OUTLINE_HIGHLIGHT_STROKEWIDTH = 5;
 
@@ -524,7 +524,7 @@ export const enum DIRECTION {
  * this value to use the default text direction of the operating system.
  *
  * Constant for text direction automatic. Default is auto. Use this value
- * to find the direction for a given text with <mxText.getAutoDirection>.
+ * to find the direction for a given text with {@link Text#getAutoDirection}.
 *
  * Constant for text direction left to right. Default is ltr. Use this
  * value for left to right text direction.
@@ -562,8 +562,6 @@ export const DIRECTION_MASK = {
 };
 
 /**
- * Variable: ELBOW
- * 
  * Default is horizontal.
  */
 export const enum ELBOW {
@@ -593,4 +591,102 @@ export const enum PERIMETER {
     RHOMBUS = 'rhombusPerimeter',
     HEXAGON = 'hexagonPerimeter',
     TRIANGLE = 'trianglePerimeter'
+};
+
+export const enum SHAPE {
+    /**
+     * Name under which {@link RectangleShape} is registered in {@link CellRenderer}.
+     * Default is rectangle.
+     */
+    RECTANGLE = 'rectangle',
+
+    /**
+     * Name under which {@link Ellipse} is registered in {@link CellRenderer}.
+     * Default is ellipse.
+     */
+    ELLIPSE = 'ellipse',
+
+    /**
+     * Name under which {@link DoubleEllipse} is registered in {@link CellRenderer}.
+     * Default is doubleEllipse.
+     */
+    DOUBLE_ELLIPSE = 'doubleEllipse',
+
+    /**
+     * Name under which {@link Rhombus} is registered in {@link CellRenderer}.
+     * Default is rhombus.
+     */
+    RHOMBUS = 'rhombus',
+
+    /**
+     * Name under which {@link Line} is registered in {@link CellRenderer}.
+     * Default is line.
+     */
+    LINE = 'line',
+
+    /**
+     * Name under which {@link ImageShape} is registered in {@link CellRenderer}.
+     * Default is image.
+     */
+    IMAGE = 'image',
+
+    /**
+     * Name under which {@link Arrow} is registered in {@link CellRenderer}.
+     * Default is arrow.
+     */
+    ARROW = 'arrow',
+
+    /**
+     * Name under which {@link ArrowConnector} is registered in {@link CellRenderer}.
+     * Default is arrowConnector.
+     */
+    ARROW_CONNECTOR = 'arrowConnector',
+
+    /**
+     * Name under which {@link Label} is registered in {@link CellRenderer}.
+     * Default is label.
+     */
+    LABEL = 'label',
+
+    /**
+     * Name under which {@link Cylinder} is registered in {@link CellRenderer}.
+     * Default is cylinder.
+     */
+    CYLINDER = 'cylinder',
+
+    /**
+     * Name under which {@link Swimlane} is registered in {@link CellRenderer}.
+     * Default is swimlane.
+     */
+    SWIMLANE = 'swimlane',
+
+    /**
+     * Name under which {@link Connector} is registered in {@link CellRenderer}.
+     * Default is connector.
+     */
+    CONNECTOR = 'connector',
+
+    /**
+     * Name under which {@link Actor} is registered in {@link CellRenderer}.
+     * Default is actor.
+     */
+    ACTOR = 'actor',
+
+    /**
+     * Name under which {@link Cloud} is registered in {@link CellRenderer}.
+     * Default is cloud.
+     */
+    CLOUD = 'cloud',
+
+    /**
+     * Name under which {@link Triangle} is registered in {@link CellRenderer}.
+     * Default is triangle. 
+     */
+    TRIANGLE = 'triangle',
+
+    /**
+     * Name under which {@link Hexagon} is registered in {@link CellRenderer}.
+     * Default is hexagon.
+     */
+    HEXAGON = 'hexagon',
 };

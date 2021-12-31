@@ -11,9 +11,10 @@ import ObjectIdentity from '../../util/ObjectIdentity';
 import { Graph } from '../Graph';
 import CellArray from '../cell/CellArray';
 import Cell from '../cell/Cell';
+import Geometry from '../geometry/Geometry';
 
 /**
- * Extends <mxGraphLayout> for arranging parallel edges. This layout works
+ * Extends {@link GraphLayout} for arranging parallel edges. This layout works
  * on edges for all pairs of vertices where there is more than one edge
  * connecting the latter.
  *
@@ -32,7 +33,7 @@ import Cell from '../cell/Cell';
  *
  * graph.addListener(mxEvent.CELL_CONNECTED, (sender, evt)=>
  * {
- *   let model = graph.getModel();
+ *   let model = graph.getDataModel();
  *   let edge = evt.getProperty('edge');
  *   let src = model.getTerminal(edge, true);
  *   let trg = model.getTerminal(edge, false);
@@ -70,9 +71,9 @@ class ParallelEdgeLayout extends GraphLayout {
   checkOverlap: boolean = false;
 
   /**
-   * Implements <mxGraphLayout.execute>.
+   * Implements {@link GraphLayout#execute}.
    */
-  execute(parent: Cell, cells: CellArray) {
+  execute(parent: Cell, cells: CellArray | null=null): void {
     const lookup = this.findParallels(parent, cells);
 
     this.graph.model.beginUpdate();
@@ -92,7 +93,7 @@ class ParallelEdgeLayout extends GraphLayout {
   /**
    * Finds the parallel edges in the given parent.
    */
-  findParallels(parent: Cell, cells: CellArray) {
+  findParallels(parent: Cell, cells: CellArray | null=null) {
     const lookup: any = [];
 
     const addCell = (cell: Cell) => {
@@ -114,7 +115,7 @@ class ParallelEdgeLayout extends GraphLayout {
         addCell(cells[i]);
       }
     } else {
-      const model = this.graph.getModel();
+      const model = this.graph.getDataModel();
       const childCount = parent.getChildCount();
 
       for (let i = 0; i < childCount; i += 1) {
@@ -169,9 +170,9 @@ class ParallelEdgeLayout extends GraphLayout {
   layout(parallels: CellArray) {
     const edge = parallels[0];
     const view = this.graph.getView();
-    const model = this.graph.getModel();
-    const src = view.getVisibleTerminal(edge, true).getGeometry();
-    const trg = view.getVisibleTerminal(edge, false).getGeometry();
+    const model = this.graph.getDataModel();
+    const src = <Geometry>(<Cell>view.getVisibleTerminal(edge, true)).getGeometry();
+    const trg = <Geometry>(<Cell>view.getVisibleTerminal(edge, false)).getGeometry();
 
     let x0;
     let y0;

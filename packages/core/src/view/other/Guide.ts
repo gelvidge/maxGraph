@@ -5,7 +5,7 @@
  * Type definitions from the typed-mxgraph project
  */
 
-import { DIALECT_SVG, GUIDE_COLOR, GUIDE_STROKEWIDTH } from '../../util/constants';
+import { DIALECT, GUIDE_COLOR, GUIDE_STROKEWIDTH } from '../../util/constants';
 import Point from '../geometry/Point';
 import PolylineShape from '../geometry/edge/PolylineShape';
 import CellState from '../cell/CellState';
@@ -27,12 +27,12 @@ class Guide {
   }
 
   /**
-   * Reference to the enclosing <mxGraph> instance.
+   * Reference to the enclosing {@link Graph} instance.
    */
   graph: Graph;
 
   /**
-   * Contains the <mxCellStates> that are used for alignment.
+   * Contains the {@link CellStates} that are used for alignment.
    */
   states: CellState[] = [];
 
@@ -47,12 +47,12 @@ class Guide {
   vertical = true;
 
   /**
-   * Holds the <mxShape> for the horizontal guide.
+   * Holds the {@link Shape} for the horizontal guide.
    */
   guideX: Shape | null = null;
 
   /**
-   * Holds the <mxShape> for the vertical guide.
+   * Holds the {@link Shape} for the vertical guide.
    */
   guideY: Shape | null = null;
 
@@ -67,7 +67,7 @@ class Guide {
   tolerance = 2;
 
   /**
-   * Sets the <mxCellStates> that should be used for alignment.
+   * Sets the {@link CellStates} that should be used for alignment.
    */
   setStates(states: CellState[]) {
     this.states = states;
@@ -92,8 +92,8 @@ class Guide {
 
   /**
    * Returns the mxShape to be used for painting the respective guide. This
-   * implementation returns a new, dashed and crisp <mxPolyline> using
-   * <mxConstants.GUIDE_COLOR> and <mxConstants.GUIDE_STROKEWIDTH> as the format.
+   * implementation returns a new, dashed and crisp {@link Polyline} using
+   * {@link Constants#GUIDE_COLOR} and {@link Constants#GUIDE_STROKEWIDTH} as the format.
    *
    * @param horizontal Boolean that specifies which guide should be created.
    */
@@ -113,7 +113,7 @@ class Guide {
   }
 
   /**
-   * Moves the <bounds> by the given <mxPoint> and returnt the snapped point.
+   * Moves the <bounds> by the given {@link Point} and returnt the snapped point.
    */
   move(
     bounds: Rectangle | null = null,
@@ -172,7 +172,7 @@ class Guide {
             // Makes sure to use SVG shapes in order to implement
             // event-transparency on the background area of the rectangle since
             // HTML shapes do not let mouseevents through even when transparent
-            this.guideX.dialect = DIALECT_SVG;
+            this.guideX.dialect = DIALECT.SVG;
             this.guideX.pointerEvents = false;
             this.guideX.init(this.graph.getView().getOverlayPane());
           }
@@ -211,7 +211,7 @@ class Guide {
             // Makes sure to use SVG shapes in order to implement
             // event-transparency on the background area of the rectangle since
             // HTML shapes do not let mouseevents through even when transparent
-            this.guideY.dialect = DIALECT_SVG;
+            this.guideY.dialect = DIALECT.SVG;
             this.guideY.pointerEvents = false;
             this.guideY.init(this.graph.getView().getOverlayPane());
           }

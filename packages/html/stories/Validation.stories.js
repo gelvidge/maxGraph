@@ -1,9 +1,9 @@
 import {
   Graph,
-  RubberBand,
+  RubberBandHandler,
   xmlUtils,
   Multiplicity,
-  mxKeyHandler,
+  KeyHandler,
   InternalEvent,
 } from '@maxgraph/core';
 
@@ -87,10 +87,10 @@ const Template = ({ label, ...args }) => {
   );
 
   // Enables rubberband selection
-  new RubberBand(graph);
+  new RubberBandHandler(graph);
 
   // Removes cells when [DELETE] is pressed
-  const keyHandler = new mxKeyHandler(graph);
+  const keyHandler = new KeyHandler(graph);
   keyHandler.bindKey(46, function (evt) {
     if (graph.isEnabled()) {
       graph.removeCells();
@@ -103,15 +103,14 @@ const Template = ({ label, ...args }) => {
     graph.validateGraph();
   };
 
-  graph.getModel().addListener(InternalEvent.CHANGE, listener);
+  graph.getDataModel().addListener(InternalEvent.CHANGE, listener);
 
   // Gets the default parent for inserting new cells. This
   // is normally the first child of the root (ie. layer 0).
   const parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const v1 = graph.insertVertex(parent, null, sourceNode, 20, 20, 80, 30);
     const v2 = graph.insertVertex(parent, null, targetNode, 200, 20, 80, 30);
     const v3 = graph.insertVertex({
@@ -143,10 +142,7 @@ const Template = ({ label, ...args }) => {
     const e2 = graph.insertEdge(parent, null, '', v1, v3);
     const e3 = graph.insertEdge(parent, null, '', v6, v4);
     // var e4 = graph.insertEdge(parent, null, '', v1, v4);
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   return container;
 };

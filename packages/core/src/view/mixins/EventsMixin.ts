@@ -21,11 +21,12 @@ import Cell from '../cell/Cell';
 import PanningHandler from '../handler/PanningHandler';
 import ConnectionHandler from '../handler/ConnectionHandler';
 import Point from '../geometry/Point';
-import { convertPoint, mixInto } from '../../util/utils';
-import { NONE, SHAPE } from '../../util/constants';
+import { mixInto } from '../../util/utils';
+import { convertPoint } from '../../util/styleUtils';
+import { NONE } from '../../util/constants';
 import Client from '../../Client';
 import EventSource from '../event/EventSource';
-import CellEditor from '../handler/CellEditor';
+import CellEditorHandler from '../handler/CellEditorHandler';
 import { Graph } from '../Graph';
 import TooltipHandler from '../handler/TooltipHandler';
 
@@ -114,6 +115,8 @@ declare module '../Graph' {
     isEnterStopsCellEditing: () => boolean;
     setEnterStopsCellEditing: (value: boolean) => void;
     getCursorForMouseEvent: (me: InternalMouseEvent) => string | null;
+
+    isSwimlaneSelectionEnabled: () => boolean;
   }
 }
 
@@ -157,6 +160,9 @@ type PartialGraph = Pick<
   | 'paintBackground'
   | 'updatePageBreaks'
   | 'isPageBreaksVisible'
+  | 'isSwimlaneSelectionEnabled'
+  | 'getSwimlaneAt'
+  | 'isSwimlane'
 >;
 type PartialEvents = Pick<
   Graph,
@@ -229,11 +235,6 @@ type PartialType = PartialGraph & PartialEvents;
 
 // @ts-expect-error The properties of PartialGraph are defined elsewhere.
 const EventsMixin: PartialType = {
-  /**
-   * Holds the mouse event listeners. See {@link fireMouseEvent}.
-   */
-  mouseListeners: [],
-
   // TODO: Document me!
   lastTouchEvent: null,
 
@@ -260,7 +261,7 @@ const EventsMixin: PartialType = {
   lastEvent: null, // FIXME: Check if this can be more specific - DOM events or mxEventObjects!
 
   /**
-   * Specifies if {@link mxKeyHandler} should invoke {@link escape} when the escape key
+   * Specifies if {@link KeyHandler} should invoke {@link escape} when the escape key
    * is pressed.
    * @default true
    */
@@ -270,14 +271,14 @@ const EventsMixin: PartialType = {
    * If `true`, when editing is to be stopped by way of selection changing,
    * data in diagram changing or other means stopCellEditing is invoked, and
    * changes are saved. This is implemented in a focus handler in
-   * {@link CellEditor}.
+   * {@link CellEditorHandler}.
    * @default true
    */
   invokesStopCellEditing: true,
 
   /**
    * If `true`, pressing the enter key without pressing control or shift will stop
-   * editing and accept the new value. This is used in {@link CellEditor} to stop
+   * editing and accept the new value. This is used in {@link CellEditorHandler} to stop
    * cell editing. Note: You can always use F2 and escape to stop editing.
    * @default false
    */
@@ -390,7 +391,7 @@ const EventsMixin: PartialType = {
    * @param evt Mouseevent that represents the keystroke.
    */
   escape(evt) {
-    this.fireEvent(new EventObject(InternalEvent.ESCAPE, 'event', evt));
+    this.fireEvent(new EventObject(InternalEvent.ESCAPE, { event: evt }));
   },
 
   /**
@@ -422,7 +423,7 @@ const EventsMixin: PartialType = {
   click(me) {
     const evt = me.getEvent();
     let cell = me.getCell();
-    const mxe = new EventObject(InternalEvent.CLICK, 'event', evt, 'cell', cell);
+    const mxe = new EventObject(InternalEvent.CLICK, { event: evt, cell });
 
     if (me.isConsumed()) {
       mxe.consume();
@@ -457,19 +458,18 @@ const EventsMixin: PartialType = {
             cell = tmp;
           }
         }
-        /* comment out swimlane for now... perhaps make it a plugin?
-      } else if (this.swimlane.isSwimlaneSelectionEnabled()) {
-        cell = this.swimlane.getSwimlaneAt(me.getGraphX(), me.getGraphY());
+      } else if (this.isSwimlaneSelectionEnabled()) {
+        cell = this.getSwimlaneAt(me.getGraphX(), me.getGraphY());
 
         if (cell != null && (!this.isToggleEvent(evt) || !isAltDown(evt))) {
-          let temp = cell;
+          let temp: Cell | null = cell;
           let swimlanes = [];
 
           while (temp != null) {
-            temp = temp.getParent();
+            temp = <Cell>temp.getParent();
             const state = this.getView().getState(temp);
 
-            if (this.swimlane.isSwimlane(temp) && state != null) {
+            if (this.isSwimlane(temp) && state != null) {
               swimlanes.push(temp);
             }
           }
@@ -486,7 +486,7 @@ const EventsMixin: PartialType = {
               }
             }
           }
-        }*/
+        }
       }
 
       if (cell) {
@@ -535,7 +535,7 @@ const EventsMixin: PartialType = {
    * @param cell Optional {@link Cell} under the mousepointer.
    */
   dblClick(evt, cell = null) {
-    const mxe = new EventObject(InternalEvent.DOUBLE_CLICK, { event: evt, cell: cell });
+    const mxe = new EventObject(InternalEvent.DOUBLE_CLICK, { event: evt, cell });
     this.fireEvent(mxe);
 
     // Handles the event if it has not been consumed
@@ -560,13 +560,7 @@ const EventsMixin: PartialType = {
    */
   tapAndHold(me) {
     const evt = me.getEvent();
-    const mxe = new EventObject(
-      InternalEvent.TAP_AND_HOLD,
-      'event',
-      evt,
-      'cell',
-      me.getCell()
-    );
+    const mxe = new EventObject(InternalEvent.TAP_AND_HOLD, { event: evt, cell: me.getCell() });
 
     const panningHandler = this.getPlugin('PanningHandler') as PanningHandler;
     const connectionHandler = this.getPlugin('ConnectionHandler') as ConnectionHandler;
@@ -600,7 +594,7 @@ const EventsMixin: PartialType = {
           connectionHandler.edgeState = connectionHandler.createEdgeState(me);
           connectionHandler.previous = state;
           connectionHandler.fireEvent(
-            new EventObject(InternalEvent.START, 'state', connectionHandler.previous)
+            new EventObject(InternalEvent.START, { state: connectionHandler.previous })
           );
         }
       }
@@ -863,11 +857,9 @@ const EventsMixin: PartialType = {
 
     if (this.isEventSourceIgnored(evtName, me)) {
       const tooltipHandler = this.getPlugin('TooltipHandler') as TooltipHandler;
-
       if (tooltipHandler) {
         tooltipHandler.hide();
       }
-
       return;
     }
 
@@ -881,9 +873,8 @@ const EventsMixin: PartialType = {
     // detect which mouseup(s) are part of the first click, ie we do not know when the first click ends.
     if (
       (!this.nativeDblClickEnabled && !isPopupTrigger(me.getEvent())) ||
-      (this.doubleTapEnabled &&
-        Client.IS_TOUCH &&
-        (isTouchEvent(me.getEvent()) || isPenEvent(me.getEvent())))
+      (this.doubleTapEnabled && Client.IS_TOUCH && (isTouchEvent(me.getEvent()) || 
+                                                    isPenEvent(me.getEvent())))
     ) {
       const currentTime = new Date().getTime();
 
@@ -935,10 +926,9 @@ const EventsMixin: PartialType = {
         this.isMouseDown = false;
 
         // Workaround for Chrome/Safari not firing native double click events for double touch on background
-        const valid =
-          cell ||
-          ((isTouchEvent(me.getEvent()) || isPenEvent(me.getEvent())) &&
-            (Client.IS_GC || Client.IS_SF));
+        const valid = cell || 
+            ((isTouchEvent(me.getEvent()) || isPenEvent(me.getEvent())) && 
+             (Client.IS_GC || Client.IS_SF));
 
         if (
           valid &&
@@ -949,7 +939,6 @@ const EventsMixin: PartialType = {
         } else {
           InternalEvent.consume(me.getEvent());
         }
-
         return;
       }
     }
@@ -960,7 +949,7 @@ const EventsMixin: PartialType = {
       // Updates the event state via getEventState
       me.state = state ? this.getEventState(state) : null;
       this.fireEvent(
-        new EventObject(InternalEvent.FIRE_MOUSE_EVENT, 'eventName', evtName, 'event', me)
+        new EventObject(InternalEvent.FIRE_MOUSE_EVENT, { eventName: evtName, event: me })
       );
 
       if (
@@ -1051,7 +1040,7 @@ const EventsMixin: PartialType = {
           Math.abs(this.initialTouchY - me.getGraphY()) < this.tolerance;
       }
 
-      const cellEditor = this.getPlugin('CellEditor') as CellEditor;
+      const cellEditor = this.getPlugin('CellEditorHandler') as CellEditorHandler;
 
       // Stops editing for all events other than from cellEditor
       if (
@@ -1112,7 +1101,7 @@ const EventsMixin: PartialType = {
   fireGestureEvent(evt, cell = null) {
     // Resets double tap event handling when gestures take place
     this.lastTouchTime = 0;
-    this.fireEvent(new EventObject(InternalEvent.GESTURE, 'event', evt, 'cell', cell));
+    this.fireEvent(new EventObject(InternalEvent.GESTURE, { event: evt, cell }));
   },
 
   /**
@@ -1172,7 +1161,7 @@ const EventsMixin: PartialType = {
 
     this.updatePageBreaks(this.isPageBreaksVisible(), width, height);
 
-    this.fireEvent(new EventObject(InternalEvent.SIZE, 'bounds', bounds));
+    this.fireEvent(new EventObject(InternalEvent.SIZE, { bounds }));
   },
 
   /*****************************************************************************

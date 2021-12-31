@@ -8,18 +8,18 @@ import Client from '../Client';
 import { PAGE_FORMAT_A4_PORTRAIT } from './constants';
 import Rectangle from '../view/geometry/Rectangle';
 import { getOuterHtml } from './domUtils';
-import { Graph } from 'src/view/Graph';
+import { Graph } from '../view/Graph';
 import { removeCursors } from './styleUtils';
 
 /**
  * Returns the scale to be used for printing the graph with the given
  * bounds across the specifies number of pages with the given format. The
  * scale is always computed such that it given the given amount or fewer
- * pages in the print output. See <mxPrintPreview> for an example.
+ * pages in the print output. See {@link PrintPreview} for an example.
  *
  * @param pageCount Specifies the number of pages in the print output.
- * @param graph <mxGraph> that should be printed.
- * @param pageFormat Optional <mxRectangle> that specifies the page format.
+ * @param graph {@link Graph} that should be printed.
+ * @param pageFormat Optional {@link Rectangle} that specifies the page format.
  * Default is <mxConstants.PAGE_FORMAT_A4_PORTRAIT>.
  * @param border The border along each side of every page.
  */
@@ -150,7 +150,7 @@ import { removeCursors } from './styleUtils';
  * If you experience problems with missing stylesheets in IE then try adding
  * the domain to the trusted sites.
  *
- * @param graph <mxGraph> to be copied.
+ * @param graph {@link Graph} to be copied.
  * @param doc Document where the new graph is created.
  * @param x0 X-coordinate of the graph view origin. Default is 0.
  * @param y0 Y-coordinate of the graph view origin. Default is 0.
@@ -159,11 +159,11 @@ import { removeCursors } from './styleUtils';
  */
 export const show = (
   graph: Graph,
-  doc: Document,
+  doc: Document | null=null,
   x0 = 0,
   y0 = 0,
-  w?: number,
-  h?: number
+  w: number | null=null,
+  h: number | null=null
 ) => {
   x0 = x0 != null ? x0 : 0;
   y0 = y0 != null ? y0 : 0;
@@ -229,7 +229,7 @@ export const show = (
     while (node != null) {
       const clone = node.cloneNode(true);
 
-      if (node == graph.view.drawPane.ownerSVGElement) {
+      if (node == (<SVGElement>graph.view.drawPane).ownerSVGElement) {
         outer.appendChild(clone);
         svg = clone as SVGElement;
       } else {
@@ -267,7 +267,7 @@ export const show = (
  *
  * This function should be called from within the document with the graph.
  *
- * @param graph <mxGraph> to be printed.
+ * @param graph {@link Graph} to be printed.
  */
 export const printScreen = (graph: Graph) => {
   const wnd = window.open();

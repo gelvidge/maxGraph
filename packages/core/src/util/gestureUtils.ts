@@ -1,13 +1,13 @@
 import DragSource, { DropHandler } from '../view/other/DragSource';
 import Point from '../view/geometry/Point';
 import { TOOLTIP_VERTICAL_OFFSET } from './constants';
-import { Graph } from 'src/view/Graph';
-import Cell from 'src/view/cell/Cell';
+import { Graph } from '../view/Graph';
+import Cell from '../view/cell/Cell';
 
 /**
  * Configures the given DOM element to act as a drag source for the
- * specified graph. Returns a a new <mxDragSource>. If
- * <mxDragSource.guideEnabled> is enabled then the x and y arguments must
+ * specified graph. Returns a a new {@link DragSource}. If
+ * {@link DragSource#guideEnabled} is enabled then the x and y arguments must
  * be used in funct to match the preview location.
  *
  * Example:
@@ -20,14 +20,14 @@ import Cell from 'src/view/cell/Cell';
  *     let parent = graph.getDefaultParent();
  *     let vertex = null;
  *
- *     graph.getModel().beginUpdate();
+ *     graph.getDataModel().beginUpdate();
  *     try
  *     {
  *        vertex = graph.insertVertex(parent, null, 'Hello', x, y, 80, 30);
  *     }
  *     finally
  *     {
- *       graph.getModel().endUpdate();
+ *       graph.getDataModel().endUpdate();
  *     }
  *
  *     graph.setSelectionCell(vertex);
@@ -50,8 +50,8 @@ import Cell from 'src/view/cell/Cell';
  * ```
  *
  * @param element DOM element to make draggable.
- * @param graphF <mxGraph> that acts as the drop target or a function that takes a
- * mouse event and returns the current <mxGraph>.
+ * @param graphF {@link Graph} that acts as the drop target or a function that takes a
+ * mouse event and returns the current {@link Graph}.
  * @param funct Function to execute on a successful drop.
  * @param dragElement Optional DOM node to be used for the drag preview.
  * @param dx Optional horizontal offset between the cursor and the drag
@@ -73,19 +73,21 @@ export const makeDraggable = (
   graphF: Graph | Function,
   funct: DropHandler,
   dragElement: Element,
-  dx: number,
-  dy: number,
-  autoscroll: boolean,
-  scalePreview: boolean,
-  highlightDropTargets: boolean,
-  getDropTarget: (graph: Graph, x: number, y: number, evt: MouseEvent) => Cell | null
+  dx: number | null=null,
+  dy: number | null=null,
+  autoscroll: boolean | null=null,
+  scalePreview: boolean=false,
+  highlightDropTargets: boolean=true,
+  getDropTarget: ((graph: Graph, x: number, y: number, evt: MouseEvent) => Cell) | null=null
 ) => {
   const dragSource = new DragSource(element, funct);
   dragSource.dragOffset = new Point(
     dx != null ? dx : 0,
     dy != null ? dy : TOOLTIP_VERTICAL_OFFSET
   );
-  dragSource.autoscroll = autoscroll;
+  if (autoscroll != null) {
+    dragSource.autoscroll = autoscroll;
+  }
 
   // Cannot enable this by default. This needs to be enabled in the caller
   // if the funct argument uses the new x- and y-arguments.

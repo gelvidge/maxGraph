@@ -1,6 +1,6 @@
 import {
   Graph,
-  RubberBand,
+  RubberBandHandler,
   InternalEvent,
   CellRenderer,
   EdgeHandler,
@@ -12,6 +12,7 @@ import {
   Morphing,
   EventObject,
   eventUtils,
+  mathUtils,
 } from '@maxgraph/core';
 
 import { globalTypes } from '../.storybook/preview';
@@ -50,13 +51,13 @@ const Template = ({ label, ...args }) => {
         shape.node,
         Client.IS_POINTER ? 'pointerdown' : 'mousedown',
         (evt) => {
-          overlay.fireEvent(new EventObject('pointerdown', 'event', evt, 'state', state));
+          overlay.fireEvent(new EventObject('pointerdown', { event: evt, state }));
         }
       );
 
       if (!Client.IS_POINTER && Client.IS_TOUCH) {
         InternalEvent.addListener(shape.node, 'touchstart', (evt) => {
-          overlay.fireEvent(new EventObject('pointerdown', 'event', evt, 'state', state));
+          overlay.fireEvent(new EventObject('pointerdown', { event: evt, state }));
         });
       }
     }
@@ -94,17 +95,17 @@ const Template = ({ label, ...args }) => {
   graph.view.setTranslate(20, 20);
 
   // Enables rubberband selection
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   // Gets the default parent for inserting new cells. This
   // is normally the first child of the root (ie. layer 0).
   const parent = graph.getDefaultParent();
 
-  const layout = new HierarchicalLayout(graph, constants.DIRECTION_WEST);
+  const layout = new HierarchicalLayout(graph, constants.DIRECTION.WEST);
 
   let v1;
   const executeLayout = (change, post) => {
-    graph.getModel().beginUpdate();
+    graph.getDataModel().beginUpdate();
     try {
       if (change != null) {
         change();
@@ -116,7 +117,7 @@ const Template = ({ label, ...args }) => {
       // New API for animating graph layout results asynchronously
       const morph = new Morphing(graph);
       morph.addListener(InternalEvent.DONE, () => {
-        graph.getModel().endUpdate();
+        graph.getDataModel().endUpdate();
         if (post != null) {
           post();
         }
@@ -136,7 +137,7 @@ const Template = ({ label, ...args }) => {
     // Installs a handler for clicks on the overlay
     overlay.addListener(InternalEvent.CLICK, (sender, evt2) => {
       graph.clearSelection();
-      const geo = graph.getCellGeometry(cell);
+      const geo = cell.getGeometry();
 
       let v2;
 
@@ -172,7 +173,7 @@ const Template = ({ label, ...args }) => {
 
       graph.stopEditing(false);
 
-      const pt = utils.convertPoint(
+      const pt = mathUtils.convertPoint(
         graph.container,
         eventUtils.getClientX(evt2),
         eventUtils.getClientY(evt2)

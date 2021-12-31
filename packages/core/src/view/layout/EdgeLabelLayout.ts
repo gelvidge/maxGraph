@@ -7,14 +7,15 @@
 
 import Point from '../geometry/Point';
 import GraphLayout from './GraphLayout';
-import { intersects } from '../../util/utils';
+import { intersects } from '../../util/mathUtils';
 import Cell from '../cell/Cell';
 import { Graph } from '../Graph';
-import CellArray from '../cell/CellArray';
 import CellState from '../cell/CellState';
+import TextShape from '../geometry/node/TextShape';
+import Rectangle from '../geometry/Rectangle';
 
 /**
- * Extends <mxGraphLayout> to implement an edge label layout. This layout
+ * Extends {@link GraphLayout} to implement an edge label layout. This layout
  * makes use of cell states, which means the graph must be validated in
  * a graph view (so that the label bounds are available) before this layout
  * can be executed.
@@ -34,7 +35,7 @@ class EdgeLabelLayout extends GraphLayout {
    */
   execute(parent: Cell): void {
     const { view } = this.graph;
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
 
     // Gets all vertices and edges inside the parent
     const edges = [];
@@ -53,7 +54,6 @@ class EdgeLabelLayout extends GraphLayout {
         }
       }
     }
-
     this.placeLabels(vertices, edges);
   }
 
@@ -64,7 +64,7 @@ class EdgeLabelLayout extends GraphLayout {
    * @param e   edges
    */
   placeLabels(v: CellState[], e: CellState[]): void {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
 
     // Moves the vertices to build a circle. Makes sure the
     // radius is large enough for the vertices to not
@@ -92,9 +92,9 @@ class EdgeLabelLayout extends GraphLayout {
   /**
    * Places the labels of the given edges.
    */
-  avoid(edge: Cell, vertex: Cell): void {
-    const model = this.graph.getModel();
-    const labRect = edge.text.boundingBox;
+  avoid(edge: CellState, vertex: CellState): void {
+    const model = this.graph.getDataModel();
+    const labRect = <Rectangle>(<TextShape>edge.text).boundingBox;
 
     if (intersects(labRect, vertex)) {
       const dy1 = -labRect.y - labRect.height + vertex.y;

@@ -1,7 +1,7 @@
 import {
   Graph,
-  mxKeyHandler,
-  utils,
+  KeyHandler,
+  mathUtils,
   domUtils,
   cloneUtils,
   eventUtils,
@@ -77,7 +77,7 @@ const Template = ({ label, ...args }) => {
       // a mouse event
       if (evt != null) {
         // Finds the relative coordinates inside the cell
-        const point = utils.convertPoint(
+        const point = mathUtils.convertPoint(
           this.container,
           eventUtils.getClientX(evt),
           eventUtils.getClientY(evt)
@@ -118,7 +118,7 @@ const Template = ({ label, ...args }) => {
   graph.setHtmlLabels(true);
 
   // Adds handling of return and escape keystrokes for editing
-  const keyHandler = new mxKeyHandler(graph);
+  const keyHandler = new KeyHandler(graph);
 
   // Sample user objects with 2 fields
   const value = {};

@@ -1,13 +1,14 @@
 import {
   Graph,
   InternalEvent,
-  RubberBand,
+  RubberBandHandler,
   Clipboard,
-  utils,
+  xmlUtils,
   eventUtils,
   Client,
   Codec,
-  Model,
+  GraphDataModel,
+  styleUtils,
   stringUtils,
 } from '@maxgraph/core';
 
@@ -46,19 +47,18 @@ const Template = ({ label, ...args }) => {
   // Public helper method for shared clipboard.
   Clipboard.cellsToString = function (cells) {
     const codec = new Codec();
-    const model = new Model();
+    const model = new GraphDataModel();
     const parent = model.getRoot().getChildAt(0);
 
     for (let i = 0; i < cells.length; i++) {
       model.add(parent, cells[i]);
     }
-
-    return utils.getXml(codec.encode(model));
+    return xmlUtils.getXml(codec.encode(model));
   };
 
   // Focused but invisible textarea during control or meta key events
   const textInput = document.createElement('textarea');
-  utils.setOpacity(textInput, 0);
+  styleUtils.setOpacity(textInput, 0);
   textInput.style.width = '1px';
   textInput.style.height = '1px';
   let restoreFocus = false;
@@ -132,7 +132,7 @@ const Template = ({ label, ...args }) => {
         const state = graph.view.getState(cells[i]);
 
         if (state != null) {
-          const geo = graph.getCellGeometry(clones[i]);
+          const geo = clones[i].getGeometry();
 
           if (geo != null && geo.relative) {
             geo.relative = false;
@@ -181,7 +181,7 @@ const Template = ({ label, ...args }) => {
       const node = doc.documentElement;
 
       if (node != null) {
-        const model = new Model();
+        const model = new GraphDataModel();
         const codec = new Codec(node.ownerDocument);
         codec.decode(node, model);
 
@@ -294,7 +294,7 @@ const Template = ({ label, ...args }) => {
   });
 
   // Enables rubberband selection
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   // Gets the default parent for inserting new cells. This
   // is normally the first child of the root (ie. layer 0).

@@ -5,7 +5,7 @@ import InternalEvent from '../event/InternalEvent';
 import InternalMouseEvent from '../event/InternalMouseEvent';
 import { Graph } from '../Graph';
 import { mixInto } from '../../util/utils';
-import CellEditor from '../handler/CellEditor';
+import CellEditorHandler from '../handler/CellEditorHandler';
 
 declare module '../Graph' {
   interface Graph {
@@ -28,7 +28,7 @@ type PartialGraph = Pick<
   Graph,
   | 'convertValueToString'
   | 'batchUpdate'
-  | 'getModel'
+  | 'getDataModel'
   | 'getSelectionCell'
   | 'fireEvent'
   | 'isAutoSizeCell'
@@ -76,7 +76,7 @@ const EditingMixin: PartialType = {
   },
 
   /**
-   * Fires a {@link startEditing} event and invokes {@link CellEditor.startEditing}
+   * Fires a {@link startEditing} event and invokes {@link CellEditorHandler.startEditing}
    * on {@link editor}. After editing was started, a {@link editingStarted} event is
    * fired.
    *
@@ -93,14 +93,14 @@ const EditingMixin: PartialType = {
         }
       } else {
         this.fireEvent(
-          new EventObject(InternalEvent.START_EDITING, 'cell', cell, 'event', evt)
+          new EventObject(InternalEvent.START_EDITING, { cell, event: evt })
         );
 
-        const cellEditor = this.getPlugin('CellEditor') as CellEditor;
+        const cellEditor = this.getPlugin('CellEditorHandler') as CellEditorHandler;
         cellEditor.startEditing(cell, evt);
 
         this.fireEvent(
-          new EventObject(InternalEvent.EDITING_STARTED, 'cell', cell, 'event', evt)
+          new EventObject(InternalEvent.EDITING_STARTED, { cell, event: evt })
         );
       }
     }
@@ -109,7 +109,7 @@ const EditingMixin: PartialType = {
   /**
    * Returns the initial value for in-place editing. This implementation
    * returns {@link convertValueToString} for the given cell. If this function is
-   * overridden, then {@link Model.valueForCellChanged} should take care
+   * overridden, then {@link GraphDataModel.valueForCellChanged} should take care
    * of correctly storing the actual new value inside the user object.
    *
    * @param cell {@link mxCell} for which the initial editing value should be returned.
@@ -126,10 +126,9 @@ const EditingMixin: PartialType = {
    * should be stored.
    */
   stopEditing(cancel = false) {
-    const cellEditor = this.getPlugin('CellEditor') as CellEditor;
+    const cellEditor = this.getPlugin('CellEditorHandler') as CellEditorHandler;
     cellEditor.stopEditing(cancel);
-
-    this.fireEvent(new EventObject(InternalEvent.EDITING_STOPPED, 'cancel', cancel));
+    this.fireEvent(new EventObject(InternalEvent.EDITING_STOPPED, { cancel }));
   },
 
   /**
@@ -164,7 +163,7 @@ const EditingMixin: PartialType = {
    * In the following example, the function is extended to map changes to
    * attributes in an XML node, as shown in {@link convertValueToString}.
    * Alternatively, the handling of this can be implemented as shown in
-   * {@link Model.valueForCellChanged} without the need to clone the
+   * {@link GraphDataModel.valueForCellChanged} without the need to clone the
    * user object.
    *
    * ```javascript
@@ -186,7 +185,7 @@ const EditingMixin: PartialType = {
    */
   cellLabelChanged(cell, value, autoSize = false) {
     this.batchUpdate(() => {
-      this.getModel().setValue(cell, value);
+      this.getDataModel().setValue(cell, value);
 
       if (autoSize) {
         this.cellSizeUpdated(cell, false);
@@ -206,7 +205,7 @@ const EditingMixin: PartialType = {
    * @param cell {@link mxCell} that should be checked.
    */
   isEditing(cell = null) {
-    const cellEditor = this.getPlugin('CellEditor') as CellEditor;
+    const cellEditor = this.getPlugin('CellEditorHandler') as CellEditorHandler;
     const editingCell = cellEditor.getEditingCell();
     return !cell ? !!editingCell : cell === editingCell;
   },
@@ -218,10 +217,9 @@ const EditingMixin: PartialType = {
    *
    * @param cell {@link mxCell} whose editable state should be returned.
    */
-  isCellEditable(cell) {
+  isCellEditable(cell): boolean {
     const style = this.getCurrentCellStyle(cell);
-
-    return this.isCellsEditable() && !this.isCellLocked(cell) && style.editable;
+    return this.isCellsEditable() && !this.isCellLocked(cell) && (style.editable || false);
   },
 
   /**

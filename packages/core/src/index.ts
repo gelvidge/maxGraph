@@ -23,10 +23,11 @@ import './view/mixins/PageBreaksMixin';
 import './view/mixins/GroupingMixin';
 import './view/mixins/OrderMixin';
 
+// GraphCodec
 export { Graph } from './view/Graph';
 
-export { default as Model } from './view/other/Model';
-export { default as GraphView } from './view/GraphView';
+export { GraphDataModel, ModelCodec } from './view/GraphDataModel';
+export { GraphView, GraphViewCodec } from './view/GraphView';
 export { default as LayoutManager } from './view/layout/LayoutManager';
 export { default as Outline } from './view/other/Outline';
 export { default as PrintPreview } from './view/other/PrintPreview';
@@ -34,21 +35,21 @@ export { default as SwimlaneManager } from './view/layout/SwimlaneManager';
 export { default as Client } from './Client';
 
 export { default as CellAttributeChange } from './view/undoable_changes/CellAttributeChange';
-export { default as ChildChange } from './view/undoable_changes/ChildChange';
+export { ChildChange, ChildChangeCodec } from './view/undoable_changes/ChildChange';
 export { default as CollapseChange } from './view/undoable_changes/CollapseChange';
 export { default as CurrentRootChange } from './view/undoable_changes/CurrentRootChange';
 export { default as GeometryChange } from './view/undoable_changes/GeometryChange';
-export { default as RootChange } from './view/undoable_changes/RootChange';
+export { RootChange, RootChangeCodec } from './view/undoable_changes/RootChange';
 export { default as SelectionChange } from './view/undoable_changes/SelectionChange';
 export { default as StyleChange } from './view/undoable_changes/StyleChange';
-export { default as TerminalChange } from './view/undoable_changes/TerminalChange';
+export { TerminalChange, TerminalChangeCodec } from './view/undoable_changes/TerminalChange';
 export { default as ValueChange } from './view/undoable_changes/ValueChange';
 export { default as VisibleChange } from './view/undoable_changes/VisibleChange';
 
-export { default as DefaultKeyHandler } from './editor/DefaultKeyHandler';
-export { default as DefaultPopupMenu } from './editor/DefaultPopupMenu';
-export { default as DefaultToolbar } from './editor/DefaultToolbar';
-export { default as Editor } from './editor/Editor';
+export { EditorKeyHandler, EditorKeyHandlerCodec } from './editor/EditorKeyHandler';
+export { EditorPopupMenu, EditorPopupMenuCodec } from './editor/EditorPopupMenu';
+export { EditorToolbar, EditorToolbarCodec } from './editor/EditorToolbar';
+export { Editor, EditorCodec } from './editor/Editor';
 
 export { default as CellHighlight } from './view/cell/CellHighlight';
 export { default as CellMarker } from './view/cell/CellMarker';
@@ -58,12 +59,12 @@ export { default as ConstraintHandler } from './view/handler/ConstraintHandler';
 export { default as EdgeHandler } from './view/handler/EdgeHandler';
 export { default as EdgeSegmentHandler } from './view/handler/EdgeSegmentHandler';
 export { default as ElbowEdgeHandler } from './view/handler/ElbowEdgeHandler';
-export { default as GraphHandler } from './view/handler/GraphHandler';
+export { default as SelectionHandler } from './view/handler/SelectionHandler';
 export { default as VertexHandle } from './view/cell/VertexHandle';
 export { default as KeyHandler } from './view/handler/KeyHandler';
 export { default as PanningHandler } from './view/handler/PanningHandler';
 export { default as PopupMenuHandler } from './view/handler/PopupMenuHandler';
-export { default as RubberBand } from './view/handler/RubberBand';
+export { default as RubberBandHandler } from './view/handler/RubberBandHandler';
 export { default as SelectionCellsHandler } from './view/handler/SelectionCellsHandler';
 export { default as TooltipHandler } from './view/handler/TooltipHandler';
 export { default as VertexHandler } from './view/handler/VertexHandler';
@@ -79,38 +80,26 @@ export { default as PartitionLayout } from './view/layout/PartitionLayout';
 export { default as RadialTreeLayout } from './view/layout/RadialTreeLayout';
 export { default as StackLayout } from './view/layout/StackLayout';
 
-export { default as HierarchicalEdgeStyle } from './view/layout/hierarchical/HierarchicalEdgeStyle';
-export { default as HierarchicalLayout } from './view/layout/hierarchical/HierarchicalLayout';
-export { default as SwimlaneLayout } from './view/layout/hierarchical/SwimlaneLayout';
+export { default as HierarchicalEdgeStyle } from './view/layout/datatypes/HierarchicalEdgeStyle';
+export { default as HierarchicalLayout } from './view/layout/HierarchicalLayout';
+export { default as SwimlaneLayout } from './view/layout/SwimlaneLayout';
 
-export { default as GraphAbstractHierarchyCell } from './view/layout/hierarchical/model/GraphAbstractHierarchyCell';
-export { default as GraphHierarchyEdge } from './view/layout/hierarchical/model/GraphHierarchyEdge';
-export { default as GraphHierarchyModel } from './view/layout/hierarchical/model/GraphHierarchyModel';
-export { default as GraphHierarchyNode } from './view/layout/hierarchical/model/GraphHierarchyNode';
-export { default as SwimlaneModel } from './view/layout/hierarchical/model/SwimlaneModel';
+export { default as GraphAbstractHierarchyCell } from './view/layout/datatypes/GraphAbstractHierarchyCell';
+export { default as GraphHierarchyEdge } from './view/layout/datatypes/GraphHierarchyEdge';
+export { default as GraphHierarchyModel } from './view/layout/hierarchical/GraphHierarchyModel';
+export { default as GraphHierarchyNode } from './view/layout/datatypes/GraphHierarchyNode';
+export { default as SwimlaneModel } from './view/layout/hierarchical/SwimlaneModel';
 
-export { default as CoordinateAssignment } from './view/layout/hierarchical/stage/CoordinateAssignment';
-export { default as HierarchicalLayoutStage } from './view/layout/hierarchical/stage/HierarchicalLayoutStage';
-export { default as MedianHybridCrossingReduction } from './view/layout/hierarchical/stage/MedianHybridCrossingReduction';
-export { default as MinimumCycleRemover } from './view/layout/hierarchical/stage/MinimumCycleRemover';
-export { default as SwimlaneOrdering } from './view/layout/hierarchical/stage/SwimlaneOrdering';
+export { default as CoordinateAssignment } from './view/layout/hierarchical/CoordinateAssignment';
+export { default as HierarchicalLayoutStage } from './view/layout/hierarchical/HierarchicalLayoutStage';
+export { default as MedianHybridCrossingReduction } from './view/layout/hierarchical/MedianHybridCrossingReduction';
+export { default as MinimumCycleRemover } from './view/layout/hierarchical/MinimumCycleRemover';
+export { default as SwimlaneOrdering } from './view/layout/hierarchical/SwimlaneOrdering';
 
-export { default as CellCodec } from './view/cell/CellCodec';
-export { default as ChildChangeCodec } from './view/undoable_changes/ChildChangeCodec';
 export { default as Codec } from './serialization/Codec';
 export { default as CodecRegistry } from './serialization/CodecRegistry';
-export { default as DefaultKeyHandlerCodec } from './editor/DefaultKeyHandlerCodec';
-export { default as DefaultPopupMenuCodec } from './editor/DefaultPopupMenuCodec';
-export { default as DefaultToolbarCodec } from './editor/DefaultToolbarCodec';
-export { default as EditorCodec } from './editor/EditorCodec';
 export { default as GenericChangeCodec } from './view/undoable_changes/GenericChangeCodec';
-export { default as GraphCodec } from './view/GraphCodec';
-export { default as GraphViewCodec } from './view/GraphViewCodec';
-export { default as ModelCodec } from './view/other/ModelCodec';
 export { default as ObjectCodec } from './serialization/ObjectCodec';
-export { default as RootChangeCodec } from './view/undoable_changes/RootChangeCodec';
-export { default as StylesheetCodec } from './view/style/StylesheetCodec';
-export { default as TerminalChangeCodec } from './view/undoable_changes/TerminalChangeCodec';
 
 export { default as ActorShape } from './view/geometry/ActorShape';
 export { default as LabelShape } from './view/geometry/node/LabelShape';
@@ -147,6 +136,8 @@ export * as eventUtils from './util/eventUtils';
 export * as gestureUtils from './util/gestureUtils';
 export * as stringUtils from './util/stringUtils';
 export * as xmlUtils from './util/xmlUtils';
+export * as styleUtils from './util/styleUtils';
+export * as mathUtils from './util/mathUtils';
 
 export { default as Animation } from './view/animate/Animation';
 export { default as Effects } from './view/animate/Effects';
@@ -165,7 +156,7 @@ export { default as Rectangle } from './view/geometry/Rectangle';
 export { default as EdgeStyle } from './view/style/EdgeStyle';
 export { default as Perimeter } from './view/style/Perimeter';
 export { default as StyleRegistry } from './view/style/StyleRegistry';
-export { default as Stylesheet } from './view/style/Stylesheet';
+export { Stylesheet, StylesheetCodec } from './view/style/Stylesheet';
 
 export * as DomHelpers from './util/domHelpers';
 
@@ -179,9 +170,10 @@ export { default as InternalMouseEvent } from './view/event/InternalMouseEvent';
 
 export { default as MaxForm } from './gui/MaxForm';
 export { default as MaxLog } from './gui/MaxLog';
-export { default as PopupMenu } from './gui/PopupMenu';
+export { default as MaxPopupMenu } from './gui/MaxPopupMenu';
 export { default as MaxToolbar } from './gui/MaxToolbar';
 export { default as MaxWindow } from './gui/MaxWindow';
+export { popup, error } from './gui/MaxWindow';
 
 export { default as ImageBox } from './view/image/ImageBox';
 export { default as ImageBundle } from './view/image/ImageBundle';
@@ -189,6 +181,7 @@ export { default as ImageExport } from './view/image/ImageExport';
 
 export { default as UrlConverter } from './util/UrlConverter';
 export { default as MaxXmlRequest } from './util/MaxXmlRequest';
+export { load, get, getAll, post, submit } from './util/MaxXmlRequest';
 
 export { default as AutoSaveManager } from './view/other/AutoSaveManager';
 export { default as Clipboard } from './util/Clipboard';
@@ -196,13 +189,14 @@ export { default as Clipboard } from './util/Clipboard';
 export { default as UndoableEdit } from './view/undoable_changes/UndoableEdit';
 export { default as UndoManager } from './view/undoable_changes/UndoManager';
 
-export { default as Cell } from './view/cell/Cell';
-export { default as CellEditor } from './view/handler/CellEditor';
+export { Cell, CellCodec } from './view/cell/Cell';
+export { default as CellEditorHandler } from './view/handler/CellEditorHandler';
 export { default as CellOverlay } from './view/cell/CellOverlay';
 export { default as CellPath } from './view/cell/CellPath';
 export { default as CellRenderer } from './view/cell/CellRenderer';
 export { default as CellState } from './view/cell/CellState';
 export { default as CellStatePreview } from './view/cell/CellStatePreview';
+export { default as CellArray } from './view/cell/CellArray';
 export { default as TemporaryCellStates } from './view/cell/TemporaryCellStates';
 export { default as ConnectionConstraint } from './view/other/ConnectionConstraint';
 export { default as Multiplicity } from './view/other/Multiplicity';

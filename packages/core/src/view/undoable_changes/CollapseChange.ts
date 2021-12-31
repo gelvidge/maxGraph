@@ -1,5 +1,7 @@
 import Cell from '../cell/Cell';
-import Model from '../other/Model';
+import GraphDataModel from '../GraphDataModel';
+import CodecRegistry from '../../serialization/CodecRegistry';
+import GenericChangeCodec from './GenericChangeCodec';
 
 import type { UndoableChange } from '../../types';
 
@@ -12,12 +14,12 @@ import type { UndoableChange } from '../../types';
  * specified model.
  */
 class CollapseChange implements UndoableChange {
-  model: Model;
+  model: GraphDataModel;
   cell: Cell;
   collapsed: boolean;
   previous: boolean;
 
-  constructor(model: Model, cell: Cell, collapsed: boolean) {
+  constructor(model: GraphDataModel, cell: Cell, collapsed: boolean) {
     this.model = model;
     this.cell = cell;
     this.collapsed = collapsed;
@@ -37,4 +39,8 @@ class CollapseChange implements UndoableChange {
   }
 }
 
+const __dummy: any = undefined;
+CodecRegistry.register(
+  new GenericChangeCodec(new CollapseChange(__dummy, __dummy, __dummy), 'collapsed')
+);
 export default CollapseChange;

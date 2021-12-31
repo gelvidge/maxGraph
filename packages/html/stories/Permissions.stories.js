@@ -2,8 +2,8 @@ import {
   Graph,
   ConnectionHandler,
   ImageBox,
-  RubberBand,
-  mxKeyHandler,
+  RubberBandHandler,
+  KeyHandler,
   DomHelpers,
 } from '@maxgraph/core';
 
@@ -44,9 +44,9 @@ const Template = ({ label, ...args }) => {
   graph.setAllowLoops(true);
 
   // Enables rubberband selection and key handling
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
-  const keyHandler = new mxKeyHandler(graph);
+  const keyHandler = new KeyHandler(graph);
 
   // Assigns the delete key
   keyHandler.bindKey(46, function (evt) {
@@ -180,16 +180,12 @@ const Template = ({ label, ...args }) => {
   const parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const v1 = graph.insertVertex(parent, null, 'Hello,', 20, 20, 80, 30);
     const v2 = graph.insertVertex(parent, null, 'Hello,', 200, 20, 80, 30);
     const v3 = graph.insertVertex(parent, null, 'World!', 200, 150, 80, 30);
     const e1 = graph.insertEdge(parent, null, 'Connection', v1, v3);
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   return div;
 };

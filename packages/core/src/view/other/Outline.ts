@@ -7,6 +7,7 @@
 
 import InternalMouseEvent from '../event/InternalMouseEvent';
 import {
+  NONE,
   OUTLINE_COLOR,
   OUTLINE_HANDLE_FILLCOLOR,
   OUTLINE_HANDLE_STROKECOLOR,
@@ -23,7 +24,7 @@ import EventObject from '../event/EventObject';
 import { getSource, isMouseEvent } from '../../util/eventUtils';
 import EventSource from '../event/EventSource';
 import { hasScrollbars } from '../../util/styleUtils';
-import { Listenable } from 'src/types';
+import { Listenable } from '../../types';
 
 /**
  * @class Outline
@@ -106,7 +107,7 @@ class Outline {
     };
 
     // Updates the scale of the outline after a change of the main graph
-    this.source.getModel().addListener(InternalEvent.CHANGE, this.updateHandler);
+    this.source.getDataModel().addListener(InternalEvent.CHANGE, this.updateHandler);
     this.outline.addMouseListener(this);
 
     // Adds listeners to keep the outline in sync with the source graph
@@ -140,7 +141,7 @@ class Outline {
     this.bounds = new Rectangle(0, 0, 0, 0);
     this.selectionBorder = new RectangleShape(
       this.bounds,
-      null,
+      NONE,
       OUTLINE_COLOR,
       OUTLINE_STROKEWIDTH
     );
@@ -309,7 +310,7 @@ class Outline {
   createGraph(container: HTMLElement): Graph {
     const graph = new Graph(
       container,
-      this.source.getModel(),
+      this.source.getDataModel(),
       defaultPlugins,
       this.source.getStylesheet()
     );
@@ -732,7 +733,7 @@ class Outline {
       // @ts-ignore
       this.source.removeListener(this.refreshHandler);
       // @ts-ignore
-      this.source.getModel().removeListener(this.updateHandler);
+      this.source.getDataModel().removeListener(this.updateHandler);
       // @ts-ignore
       this.source.getView().removeListener(this.updateHandler);
       // @ts-ignore

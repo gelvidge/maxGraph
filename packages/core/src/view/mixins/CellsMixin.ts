@@ -1,18 +1,20 @@
 import Cell from '../cell/Cell';
 import CellArray from '../cell/CellArray';
+import { mixInto } from '../../util/utils';
 import {
   contains,
   getBoundingBox,
   getRotatedPoint,
-  getSizeForString,
   intersects,
-  mixInto,
   ptSegDistSq,
+  toRadians,
+} from '../../util/mathUtils';
+import {
   setCellStyleFlags,
   setCellStyles,
   setStyle,
-  toRadians,
-} from '../../util/utils';
+  getSizeForString,
+} from '../../util/styleUtils';
 import {
   ALIGN,
   DEFAULT_FONTSIZE,
@@ -168,9 +170,9 @@ declare module '../Graph' {
     getCellContainmentArea: (cell: Cell) => Rectangle | null;
     constrainChild: (cell: Cell, sizeFirst?: boolean) => void;
     getChildCells: (
-      parent: Cell | null,
-      vertices?: boolean | null,
-      edges?: boolean | null
+      parent?: Cell | null,
+      vertices?: boolean,
+      edges?: boolean
     ) => CellArray;
     getCellAt: (
       x: number,
@@ -186,7 +188,7 @@ declare module '../Graph' {
       width: number,
       height: number,
       parent?: Cell | null,
-      result?: CellArray | null,
+      result?: CellArray,
       intersection?: Rectangle | null,
       ignoreFn?: Function | null,
       includeDescendants?: boolean
@@ -257,7 +259,7 @@ type PartialGraph = Pick<
   | 'getView'
   | 'getStylesheet'
   | 'batchUpdate'
-  | 'getModel'
+  | 'getDataModel'
   | 'fireEvent'
   | 'getDefaultParent'
   | 'getCurrentRoot'
@@ -401,7 +403,7 @@ type PartialCells = Pick<
 type PartialType = PartialGraph & PartialCells;
 
 // @ts-expect-error The properties of PartialGraph are defined elsewhere.
-const CellsMixin: PartialType = {
+export const CellsMixin: PartialType = {
   /**
    * Specifies the return value for {@link isCellsResizable}.
    * @default true
@@ -567,7 +569,7 @@ const CellsMixin: PartialType = {
     }
 
     // Resolves the stylename using the above as the default
-    if (stylename) {
+    if (style && stylename) {
       style = this.postProcessCellStyle(stylesheet.getCellStyle(stylename, style));
     }
 
@@ -584,7 +586,10 @@ const CellsMixin: PartialType = {
    * defined in RFC 2397 of the IETF.
    */
   postProcessCellStyle(style) {
-    const key = style.image;
+    if (!style.image) {
+      return style;
+    }
+    const key = <string>style.image;
     let image = this.getImageFromBundles(key);
 
     if (image) {
@@ -625,7 +630,7 @@ const CellsMixin: PartialType = {
 
     this.batchUpdate(() => {
       for (const cell of cells!) {
-        this.getModel().setStyle(cell, style);
+        this.getDataModel().setStyle(cell, style);
       }
     });
   },
@@ -691,7 +696,7 @@ const CellsMixin: PartialType = {
   setCellStyles(key, value, cells) {
     cells = cells ?? this.getSelectionCells();
 
-    setCellStyles(this.getModel(), cells, key, value);
+    setCellStyles(this.getDataModel(), cells, key, value);
   },
 
   /**
@@ -729,7 +734,7 @@ const CellsMixin: PartialType = {
         const current = (style[key] as number) || 0;
         value = !((current & flag) === flag);
       }
-      setCellStyleFlags(this.getModel(), cells, key, flag, value);
+      setCellStyleFlags(this.getDataModel(), cells, key, flag, value);
     }
   },
 
@@ -792,7 +797,7 @@ const CellsMixin: PartialType = {
         this.batchUpdate(() => {
           const p = param as number;
 
-          for (const cell of cells) {
+          for (const cell of <CellArray>cells) {
             const state = this.getView().getState(cell);
 
             if (state != null) {
@@ -820,7 +825,7 @@ const CellsMixin: PartialType = {
             }
           }
 
-          this.fireEvent(new EventObject(InternalEvent.ALIGN.CELLS, { align, cells }));
+          this.fireEvent(new EventObject(InternalEvent.ALIGN_CELLS, { align, cells }));
         });
       }
     }
@@ -985,10 +990,10 @@ const CellsMixin: PartialType = {
   /**
    * Adds the cells to the parent at the given index, connecting each cell to
    * the optional source and target terminal. The change is carried out using
-   * <cellsAdded>. This method fires <mxEvent.ADD_CELLS> while the
+   * <cellsAdded>. This method fires {@link Event#ADD_CELLS} while the
    * transaction is in progress. Returns the cells that were added.
    *
-   * @param cells Array of <mxCells> to be inserted.
+   * @param cells Array of {@link Cells} to be inserted.
    * @param parent <Cell> that represents the new parent. If no parent is
    * given then the default parent is used.
    * @param index Optional index to insert the cells at. Default is to append.
@@ -1020,7 +1025,7 @@ const CellsMixin: PartialType = {
 
   /**
    * Adds the specified cells to the given parent. This method fires
-   * <mxEvent.CELLS_ADDED> while the transaction is in progress.
+   * {@link Event#CELLS_ADDED} while the transaction is in progress.
    */
   cellsAdded(
     cells,
@@ -1065,7 +1070,7 @@ const CellsMixin: PartialType = {
               geo.y = Math.max(0, geo.y);
             }
 
-            this.getModel().setGeometry(cell, geo);
+            this.getDataModel().setGeometry(cell, geo);
           }
         }
 
@@ -1075,7 +1080,7 @@ const CellsMixin: PartialType = {
           index--;
         }
 
-        this.getModel().add(parent, cell, index + i);
+        this.getDataModel().add(parent, cell, index + i);
 
         if (this.autoSizeCellsOnAdd) {
           this.autoSizeCell(cell, true);
@@ -1265,8 +1270,8 @@ const CellsMixin: PartialType = {
                   }
                 }
 
-                this.getModel().setGeometry(edge, geo);
-                this.getModel().setTerminal(edge, null, source);
+                this.getDataModel().setGeometry(edge, geo);
+                this.getDataModel().setTerminal(edge, null, source);
               }
             }
           };
@@ -1279,7 +1284,7 @@ const CellsMixin: PartialType = {
             }
           }
 
-          this.getModel().remove(cell);
+          this.getDataModel().remove(cell);
         }
 
         this.fireEvent(new EventObject(InternalEvent.CELLS_REMOVED, { cells }));
@@ -1330,7 +1335,7 @@ const CellsMixin: PartialType = {
     if (cells.length > 0) {
       this.batchUpdate(() => {
         for (const cell of cells) {
-          this.getModel().setVisible(cell, show);
+          this.getDataModel().setVisible(cell, show);
         }
       });
     }
@@ -1398,7 +1403,7 @@ const CellsMixin: PartialType = {
             geo.height = size.height;
           }
 
-          this.getModel().setStyle(cell, cellStyle);
+          this.getDataModel().setStyle(cell, cellStyle);
         } else {
           const state = this.getView().createState(cell);
           const align = state.style.align ?? ALIGN.CENTER;
@@ -1596,7 +1601,7 @@ const CellsMixin: PartialType = {
    *   {
    *     for (var i = 0; i < cells.length; i++)
    *     {
-   *       if (graph.getModel().getChildCount(cells[i]) > 0)
+   *       if (graph.getDataModel().getChildCount(cells[i]) > 0)
    *       {
    *         var geo = cells[i].getGeometry();
    *
@@ -1609,7 +1614,7 @@ const CellsMixin: PartialType = {
    *           geo.width = Math.max(geo.width, bounds.width);
    *           geo.height = Math.max(geo.height, bounds.height);
    *
-   *           graph.getModel().setGeometry(cells[i], geo);
+   *           graph.getDataModel().setGeometry(cells[i], geo);
    *         }
    *       }
    *     }
@@ -1694,7 +1699,7 @@ const CellsMixin: PartialType = {
           this.resizeChildCells(cell, geo);
         }
 
-        this.getModel().setGeometry(cell, geo);
+        this.getDataModel().setGeometry(cell, geo);
         this.constrainChildCells(cell);
       });
     }
@@ -1782,7 +1787,7 @@ const CellsMixin: PartialType = {
       if (cell.isVertex()) {
         this.cellResized(cell, geo, true, recurse);
       } else {
-        this.getModel().setGeometry(cell, geo);
+        this.getDataModel().setGeometry(cell, geo);
       }
     }
   },
@@ -1839,7 +1844,7 @@ const CellsMixin: PartialType = {
    * Moves or clones the specified cells and moves the cells or clones by the
    * given amount, adding them to the optional target cell. The evt is the
    * mouse event as the mouse was released. The change is carried out using
-   * <cellsMoved>. This method fires <mxEvent.MOVE_CELLS> while the
+   * <cellsMoved>. This method fires {@link Event#MOVE_CELLS} while the
    * transaction is in progress. Returns the cells that were moved.
    *
    * Use the following code to move all cells in the graph.
@@ -1848,7 +1853,7 @@ const CellsMixin: PartialType = {
    * graph.moveCells(graph.getChildCells(null, true, true), 10, 10);
    * ```
    *
-   * @param cells Array of <mxCells> to be moved, cloned or added to the target.
+   * @param cells Array of {@link Cells} to be moved, cloned or added to the target.
    * @param dx Integer that specifies the x-coordinate of the vector. Default is 0.
    * @param dy Integer that specifies the y-coordinate of the vector. Default is 0.
    * @param clone Boolean indicating if the cells should be cloned. Default is false.
@@ -1863,7 +1868,7 @@ const CellsMixin: PartialType = {
     clone = false,
     target = null,
     evt = null,
-    mapping = null
+    mapping = {}
   ) {
     if (dx !== 0 || dy !== 0 || clone || target) {
       // Removes descendants with ancestors in cells to avoid multiple moving
@@ -1954,9 +1959,9 @@ const CellsMixin: PartialType = {
                 geo.relative &&
                 parent &&
                 parent.isEdge() &&
-                this.getModel().contains(parent)
+                this.getDataModel().contains(parent)
               ) {
-                this.getModel().add(parent, cell);
+                this.getDataModel().add(parent, cell);
               }
             });
           }
@@ -1981,7 +1986,7 @@ const CellsMixin: PartialType = {
   /**
    * Moves the specified cells by the given vector, disconnecting the cells
    * using disconnectGraph is disconnect is true. This method fires
-   * <mxEvent.CELLS_MOVED> while the transaction is in progress.
+   * {@link Event#CELLS_MOVED} while the transaction is in progress.
    */
   cellsMoved(cells, dx, dy, disconnect = false, constrain = false, extend = false) {
     if (dx !== 0 || dy !== 0) {
@@ -2004,9 +2009,7 @@ const CellsMixin: PartialType = {
           this.resetEdges(cells);
         }
 
-        this.fireEvent(
-          new EventObject(InternalEvent.CELLS_MOVED, { cells, dx, dy, disconnect })
-        );
+        this.fireEvent(new EventObject(InternalEvent.CELLS_MOVED, { cells, dx, dy, disconnect }));
       });
     }
   },
@@ -2052,8 +2055,7 @@ const CellsMixin: PartialType = {
           geometry.offset.y = geometry.offset.y + dy;
         }
       }
-
-      this.getModel().setGeometry(cell, geometry);
+      this.getDataModel().setGeometry(cell, geometry);
     }
   },
 
@@ -2226,8 +2228,7 @@ const CellsMixin: PartialType = {
               geo.y += dy;
             }
           }
-
-          this.getModel().setGeometry(cell, geo);
+          this.getDataModel().setGeometry(cell, geo);
         }
       }
     }
@@ -2286,7 +2287,7 @@ const CellsMixin: PartialType = {
       parent = this.getCurrentRoot();
 
       if (!parent) {
-        parent = this.getModel().getRoot();
+        parent = this.getDataModel().getRoot();
       }
     }
 
@@ -2345,7 +2346,7 @@ const CellsMixin: PartialType = {
     includeDescendants = false
   ) {
     if (width > 0 || height > 0 || intersection) {
-      const model = this.getModel();
+      const model = this.getDataModel();
       const right = x + width;
       const bottom = y + height;
 
@@ -2540,7 +2541,7 @@ const CellsMixin: PartialType = {
    * Returns the cells which may be exported in the given array of cells.
    */
   getCloneableCells(cells) {
-    return this.getModel().filterCells(cells, (cell: Cell) => {
+    return this.getDataModel().filterCells(cells, (cell: Cell) => {
       return this.isCellCloneable(cell);
     });
   },
@@ -2554,7 +2555,8 @@ const CellsMixin: PartialType = {
    */
   isCellCloneable(cell) {
     const style = this.getCurrentCellStyle(cell);
-    return this.isCellsCloneable() && style.cloneable;
+    const cloneable = style.cloneable == null ? true : style.cloneable;
+    return this.isCellsCloneable() && cloneable;
   },
 
   /**
@@ -2580,7 +2582,7 @@ const CellsMixin: PartialType = {
    * Returns the cells which may be exported in the given array of cells.
    */
   getExportableCells(cells) {
-    return this.getModel().filterCells(cells, (cell: Cell) => {
+    return this.getDataModel().filterCells(cells, (cell: Cell) => {
       return this.canExportCell(cell);
     });
   },
@@ -2599,7 +2601,7 @@ const CellsMixin: PartialType = {
    * Returns the cells which may be imported in the given array of cells.
    */
   getImportableCells(cells) {
-    return this.getModel().filterCells(cells, (cell: Cell) => {
+    return this.getDataModel().filterCells(cells, (cell: Cell) => {
       return this.canImportCell(cell);
     });
   },
@@ -2659,7 +2661,7 @@ const CellsMixin: PartialType = {
    * Returns the cells which may be exported in the given array of cells.
    */
   getDeletableCells(cells) {
-    return this.getModel().filterCells(cells, (cell: Cell) => {
+    return this.getDataModel().filterCells(cells, (cell: Cell) => {
       return this.isCellDeletable(cell);
     });
   },
@@ -2673,7 +2675,8 @@ const CellsMixin: PartialType = {
    */
   isCellDeletable(cell) {
     const style = this.getCurrentCellStyle(cell);
-    return this.isCellsDeletable() && style.deletable;
+    const deletable = style.deletable == null ? true : style.deletable;
+    return this.isCellsDeletable() && deletable;
   },
 
   /**
@@ -2700,14 +2703,15 @@ const CellsMixin: PartialType = {
    */
   isCellRotatable(cell) {
     const style = this.getCurrentCellStyle(cell);
-    return style.rotatable;
+    const rotatable = style.rotatable == null ? true : style.rotatable;
+    return rotatable;
   },
 
   /**
    * Returns the cells which are movable in the given array of cells.
    */
   getMovableCells(cells) {
-    return this.getModel().filterCells(cells, (cell: Cell) => {
+    return this.getDataModel().filterCells(cells, (cell: Cell) => {
       return this.isCellMovable(cell);
     });
   },
@@ -2721,7 +2725,6 @@ const CellsMixin: PartialType = {
    */
   isCellMovable(cell) {
     const style = this.getCurrentCellStyle(cell);
-
     return this.isCellsMovable() && !this.isCellLocked(cell) && !style.movable;
   },
 
@@ -2752,10 +2755,9 @@ const CellsMixin: PartialType = {
    */
   isCellResizable(cell) {
     const style = this.getCurrentCellStyle(cell);
-
-    const r =
-      this.isCellsResizable() && !this.isCellLocked(cell) && (style.resizable ?? true);
-
+    const r = this.isCellsResizable() && 
+              !this.isCellLocked(cell) && 
+              (style.resizable ?? true);
     return r;
   },
 
@@ -2786,7 +2788,6 @@ const CellsMixin: PartialType = {
    */
   isCellBendable(cell) {
     const style = this.getCurrentCellStyle(cell);
-
     return this.isCellsBendable() && !this.isCellLocked(cell) && !!style.bendable;
   },
 
@@ -2818,7 +2819,6 @@ const CellsMixin: PartialType = {
    */
   isAutoSizeCell(cell) {
     const style = this.getCurrentCellStyle(cell);
-
     return this.isAutoSizeCells() || !!style.autosize;
   },
 
@@ -2994,7 +2994,6 @@ const CellsMixin: PartialType = {
       if (includeEdges || cell.isVertex()) {
         // Computes the bounding box for the points in the geometry
         const geo = cell.getGeometry();
-
         if (geo) {
           let bbox = null;
 
@@ -3068,10 +3067,8 @@ const CellsMixin: PartialType = {
             }
 
             const style = this.getCurrentCellStyle(cell);
-
             if (bbox) {
               const angle = style.rotation ?? 0;
-
               if (angle !== 0) {
                 bbox = getBoundingBox(bbox, angle);
               }

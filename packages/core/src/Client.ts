@@ -35,7 +35,7 @@ class Client {
    */
   static mxResourceExtension = '.txt';
 
-  static setResourceExtension = value => {
+  static setResourceExtension = (value: string) => {
     Client.mxResourceExtension = value;
     
     // Removes dependency with mxResources.
@@ -45,7 +45,7 @@ class Client {
 
   /**
    * Optional global config variable to toggle loading of the two resource files
-   * in <mxGraph> and <Editor>. Default is true. NOTE: This is a global variable,
+   * in {@link Graph} and <Editor>. Default is true. NOTE: This is a global variable,
    * not a variable of Client. If this is false, you can use <Client.loadResources>
    * with its callback to load the default bundles asynchronously.
    *
@@ -58,7 +58,9 @@ class Client {
    */
   static mxLoadResources = true;
 
-  static setLoadResources = value => {};
+  static setLoadResources = (value: boolean) => {
+    Client.mxLoadResources = value;
+  };
 
   /**
    * Optional global config variable to force loading the JavaScript files in
@@ -74,7 +76,7 @@ class Client {
    */
   static mxForceIncludes = false;
 
-  static setForceIncludes = value => {
+  static setForceIncludes = (value: boolean) => {
     Client.mxForceIncludes = value;
   };
 
@@ -92,7 +94,7 @@ class Client {
    */
   static mxLoadStylesheets = true;
 
-  static setLoadStylesheets = value => {
+  static setLoadStylesheets = (value: boolean) => {
     Client.mxLoadStylesheets = value;
   };
 
@@ -113,7 +115,7 @@ class Client {
    */
   static basePath = '.';
 
-  static setBasePath = value => {
+  static setBasePath = (value: string) => {
     if (typeof value !== 'undefined' && value.length > 0) {
       // Adds a trailing slash if required
       if (value.substring(value.length - 1) === '/') {
@@ -142,7 +144,7 @@ class Client {
    */
   static imageBasePath = '.';
   
-  static setImageBasePath = value => {
+  static setImageBasePath = (value: string) => {
     if (typeof value !== 'undefined' && value.length > 0) {
       // Adds a trailing slash if required
       if (value.substring(value.length - 1) === '/') {
@@ -157,7 +159,7 @@ class Client {
   /**
    * Defines the language of the client, eg. en for english, de for german etc.
    * The special value 'none' will disable all built-in internationalization and
-   * resource loading. See <mxResources.getSpecialBundle> for handling identifiers
+   * resource loading. See {@link Resources#getSpecialBundle} for handling identifiers
    * with and without a dash.
    *
    * Set mxLanguage prior to loading the Client library as follows to override
@@ -176,16 +178,16 @@ class Client {
    * <Editor.askZoomResource>, <Editor.lastSavedResource>,
    * <Editor.currentFileResource>, <Editor.propertiesResource>,
    * <Editor.tasksResource>, <Editor.helpResource>, <Editor.outlineResource>,
-   * <mxElbowEdgeHandler.doubleClickOrientationResource>, <mxUtils.errorResource>,
-   * <mxUtils.closeResource>, <mxGraphSelectionModel.doneResource>,
-   * <mxGraphSelectionModel.updatingSelectionResource>, <mxGraphView.doneResource>,
-   * <mxGraphView.updatingDocumentResource>, <mxCellRenderer.collapseExpandResource>,
-   * <mxGraph.containsValidationErrorsResource> and
-   * <mxGraph.alreadyConnectedResource>.
+   * {@link ElbowEdgeHandler#doubleClickOrientationResource}, {@link Utils#errorResource},
+   * {@link Utils#closeResource}, {@link GraphSelectionModel#doneResource},
+   * {@link GraphSelectionModel#updatingSelectionResource}, {@link GraphView#doneResource},
+   * {@link GraphView#updatingDocumentResource}, {@link CellRenderer#collapseExpandResource},
+   * {@link Graph#containsValidationErrorsResource} and
+   * {@link Graph#alreadyConnectedResource}.
    */
   static language = typeof window !== 'undefined' ? navigator.language : 'en';
 
-  static setLanguage = value => {
+  static setLanguage = (value: string | undefined | null) => {
     if (typeof value !== 'undefined' && value != null) {
       Client.language = value;
     } else {
@@ -210,7 +212,7 @@ class Client {
    */
   static defaultLanguage = 'en';
 
-  static setDefaultLanguage = value => {
+  static setDefaultLanguage = (value: string | undefined | null) => {
     if (typeof value !== 'undefined' && value != null) {
       Client.defaultLanguage = value;
     } else {
@@ -221,7 +223,7 @@ class Client {
   /**
    * Defines the optional array of all supported language extensions. The default
    * language does not have to be part of this list. See
-   * <mxResources.isLanguageSupported>.
+   * {@link Resources#isLanguageSupported}.
    *
    * ```javascript
    * <script type="text/javascript">
@@ -235,7 +237,7 @@ class Client {
    */
   static languages: string[] | null = null;
 
-  static setLanguages = value => {
+  static setLanguages = (value: string[] | null | undefined) => {
     if (typeof value !== 'undefined' && value != null) {
       Client.languages = value;
     }
@@ -289,14 +291,17 @@ class Client {
    */
   static IS_CHROMEAPP =
     typeof window !== 'undefined' &&
+    // @ts-ignore
     window.chrome != null &&
+    // @ts-ignore
     chrome.app != null &&
+    // @ts-ignore
     chrome.app.runtime != null;
 
   /**
    * True if the current browser is Firefox.
    */
-  static IS_FF = typeof window !== 'undefined' && typeof InstallTrigger !== 'undefined';
+  static IS_FF = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
 
   /**
    * True if -moz-transform is available as a CSS style. This is the case

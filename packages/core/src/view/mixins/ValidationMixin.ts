@@ -18,7 +18,7 @@ declare module '../Graph' {
       target: Cell | null
     ) => string | null;
     validateEdge: (edge: Cell, source: Cell, target: Cell) => string | null;
-    validateGraph: (cell: Cell | null, context: any) => string | null;
+    validateGraph: (cell?: Cell | null, context?: any) => string | null;
     getCellValidationError: (cell: Cell) => string | null;
     validateCell: (cell: Cell, context: CellState) => string | null;
   }
@@ -26,7 +26,7 @@ declare module '../Graph' {
 
 type PartialGraph = Pick<
   Graph,
-  | 'getModel'
+  | 'getDataModel'
   | 'isAllowLoops'
   | 'isMultigraph'
   | 'getView'
@@ -52,12 +52,6 @@ type PartialType = PartialGraph & PartialValidation;
 
 // @ts-expect-error The properties of PartialGraph are defined elsewhere.
 const ValidationMixin: PartialType = {
-  /**
-   * An array of {@link Multiplicity} describing the allowed
-   * connections in a graph.
-   */
-  multiplicities: [],
-
   /*****************************************************************************
    * Group: Validation
    *****************************************************************************/
@@ -78,7 +72,7 @@ const ValidationMixin: PartialType = {
    * @param source {@link mxCell} that represents the source terminal.
    * @param target {@link mxCell} that represents the target terminal.
    */
-  isEdgeValid(edge: Cell, source: Cell, target: Cell) {
+  isEdgeValid(edge: Cell | null, source: Cell | null, target: Cell | null) {
     return !this.getEdgeValidationError(edge, source, target);
   },
 
@@ -144,7 +138,7 @@ const ValidationMixin: PartialType = {
       // Checks if the cells are already connected
       // and adds an error message if required
       if (!this.isMultigraph()) {
-        const tmp = this.getModel().getEdgesBetween(source, target, true);
+        const tmp = this.getDataModel().getEdgesBetween(source, target, true);
 
         // Checks if the source and target are not connected by another edge
         if (tmp.length > 1 || (tmp.length === 1 && tmp[0] !== edge)) {
@@ -215,7 +209,7 @@ const ValidationMixin: PartialType = {
    * @param context Object that represents the global validation state.
    */
   validateGraph(cell: Cell | null=null, context) {
-    cell = cell ?? this.getModel().getRoot();
+    cell = cell ?? this.getDataModel().getRoot();
 
     if (!cell) {
       return 'The root does not exist!';

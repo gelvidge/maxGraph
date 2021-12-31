@@ -4,7 +4,7 @@
  * Updated to ES9 syntax by David Morrissey 2021
  * Type definitions from the typed-mxgraph project
  */
-import PopupMenu from '../../gui/PopupMenu';
+import MaxPopupMenu from '../../gui/MaxPopupMenu';
 import InternalEvent from '../event/InternalEvent';
 import { getScrollOrigin } from '../../util/styleUtils';
 import { getMainEvent, isMultiTouchEvent } from '../../util/eventUtils';
@@ -20,9 +20,9 @@ import EventObject from '../event/EventObject';
  *
  * Constructor: mxPopupMenuHandler
  *
- * Constructs an event handler that creates a <mxPopupMenu>.
+ * Constructs an event handler that creates a {@link PopupMenu}.
  */
-class PopupMenuHandler extends PopupMenu implements GraphPlugin {
+class PopupMenuHandler extends MaxPopupMenu implements GraphPlugin {
   static pluginId = 'PopupMenuHandler';
 
   constructor(graph: Graph) {
@@ -47,7 +47,7 @@ class PopupMenuHandler extends PopupMenu implements GraphPlugin {
   popupTrigger = false;
 
   /**
-   * Reference to the enclosing <mxGraph>.
+   * Reference to the enclosing {@link Graph}.
    */
   graph: Graph;
 
@@ -96,7 +96,7 @@ class PopupMenuHandler extends PopupMenu implements GraphPlugin {
   }
 
   /**
-   * Hook for returning if a cell should be selected for a given <mxMouseEvent>.
+   * Hook for returning if a cell should be selected for a given {@link MouseEvent}.
    * This implementation returns <selectOnPopup>.
    */
   isSelectOnPopup(me: InternalMouseEvent): boolean {

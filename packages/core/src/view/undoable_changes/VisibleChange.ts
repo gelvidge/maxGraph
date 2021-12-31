@@ -1,5 +1,7 @@
 import Cell from '../cell/Cell';
-import Model from '../other/Model';
+import GraphDataModel from '../GraphDataModel';
+import CodecRegistry from '../../serialization/CodecRegistry';
+import GenericChangeCodec from './GenericChangeCodec';
 
 import type { UndoableChange } from '../../types';
 
@@ -12,12 +14,12 @@ import type { UndoableChange } from '../../types';
  * specified model.
  */
 class VisibleChange implements UndoableChange {
-  model: Model;
+  model: GraphDataModel;
   cell: Cell;
   visible: boolean;
   previous: boolean;
 
-  constructor(model: Model, cell: Cell, visible: boolean) {
+  constructor(model: GraphDataModel, cell: Cell, visible: boolean) {
     this.model = model;
     this.cell = cell;
     this.visible = visible;
@@ -37,4 +39,8 @@ class VisibleChange implements UndoableChange {
   }
 }
 
+const __dummy: any = undefined;
+CodecRegistry.register(
+  new GenericChangeCodec(new VisibleChange(__dummy, __dummy, __dummy), 'visible')
+);
 export default VisibleChange;

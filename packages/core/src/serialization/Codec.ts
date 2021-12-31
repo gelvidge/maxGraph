@@ -12,7 +12,6 @@ import Cell from '../view/cell/Cell';
 import MaxLog from '../gui/MaxLog';
 import { getFunctionName } from '../util/stringUtils';
 import { importNode, isNode } from '../util/domUtils';
-import CellCodec from 'src/view/cell/CellCodec';
 import ObjectCodec from './ObjectCodec';
 
 const createXmlDocument = () => {
@@ -36,7 +35,7 @@ const createXmlDocument = () => {
  *
  * ```javascript
  * var encoder = new Codec();
- * var result = encoder.encode(graph.getModel());
+ * var result = encoder.encode(graph.getDataModel());
  * var xml = mxUtils.getXml(result);
  * ```
  *
@@ -50,7 +49,7 @@ const createXmlDocument = () => {
  * ```javascript
  * var doc = mxUtils.parseXml(xmlString);
  * var codec = new Codec(doc);
- * codec.decode(doc.documentElement, graph.getModel());
+ * codec.decode(doc.documentElement, graph.getDataModel());
  * ```
  *
  * #### Example

@@ -17,7 +17,6 @@ import StyleChange from '../undoable_changes/StyleChange';
 import EventObject from '../event/EventObject';
 import Cell from '../cell/Cell';
 import Rectangle from '../geometry/Rectangle';
-import InternalMouseEvent from '../event/InternalMouseEvent';
 import { getClientX, getClientY } from '../../util/eventUtils';
 import CellArray from '../cell/CellArray';
 import { Graph } from '../Graph';
@@ -159,7 +158,7 @@ class LayoutManager extends EventSource {
    */
   setGraph(graph: Graph | null) {
     if (this.graph) {
-      const model = this.graph.getModel();
+      const model = this.graph.getDataModel();
       model.removeListener(this.undoHandler);
       this.graph.removeListener(this.moveHandler);
       this.graph.removeListener(this.resizeHandler);
@@ -168,7 +167,7 @@ class LayoutManager extends EventSource {
     this.graph = graph!;
 
     if (this.graph) {
-      const model = this.graph.getModel();
+      const model = this.graph.getDataModel();
       model.addListener(InternalEvent.BEFORE_UNDO, this.undoHandler);
       this.graph.addListener(InternalEvent.MOVE_CELLS, this.moveHandler);
       this.graph.addListener(InternalEvent.RESIZE_CELLS, this.resizeHandler);
@@ -177,10 +176,10 @@ class LayoutManager extends EventSource {
 
   /**
    * Returns true if the given cell has a layout. This implementation invokes
-   * <getLayout> with <mxEvent.LAYOUT_CELLS> as the eventName. Override this
+   * <getLayout> with {@link Event#LAYOUT_CELLS} as the eventName. Override this
    * if creating layouts in <getLayout> is expensive and return true if
    * <getLayout> will return a layout for the given cell for
-   * <mxEvent.BEGIN_UPDATE> or <mxEvent.END_UPDATE>.
+   * {@link Event#BEGIN_UPDATE} or {@link Event#END_UPDATE}.
    */
   hasLayout(cell: Cell | null) {
     return !!this.getLayout(cell, InternalEvent.LAYOUT_CELLS);
@@ -353,7 +352,7 @@ class LayoutManager extends EventSource {
   layoutCells(cells: CellArray, bubble: boolean = false) {
     if (cells.length > 0) {
       // Invokes the layouts while removing duplicates
-      const model = this.getGraph().getModel();
+      const model = this.getGraph().getDataModel();
 
       model.beginUpdate();
       try {
@@ -366,7 +365,7 @@ class LayoutManager extends EventSource {
           }
         }
 
-        this.fireEvent(new EventObject(InternalEvent.LAYOUT_CELLS, 'cells', cells));
+        this.fireEvent(new EventObject(InternalEvent.LAYOUT_CELLS, { cells }));
       } finally {
         model.endUpdate();
       }

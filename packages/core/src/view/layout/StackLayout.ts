@@ -6,7 +6,8 @@
  */
 import GraphLayout from './GraphLayout';
 import Rectangle from '../geometry/Rectangle';
-import { getNumber, getValue } from '../../util/utils';
+import { getValue } from '../../util/utils';
+import { getNumber } from '../../util/stringUtils';
 import { DEFAULT_STARTSIZE } from '../../util/constants';
 import { Graph } from '../Graph';
 import Cell from '../cell/Cell';
@@ -14,7 +15,7 @@ import Geometry from '../geometry/Geometry';
 import CellArray from '../cell/CellArray';
 
 /**
- * Extends <mxGraphLayout> to create a horizontal or vertical stack of the
+ * Extends {@link GraphLayout} to create a horizontal or vertical stack of the
  * child vertices. The children do not need to be connected for this layout
  * to work.
  *
@@ -148,7 +149,7 @@ class StackLayout extends GraphLayout {
    * Implements mxGraphLayout.moveCell.
    */
   moveCell(cell: Cell, x: number, y: number): void {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
     const parent = cell.getParent();
     const horizontal = this.isHorizontal();
 
@@ -196,9 +197,9 @@ class StackLayout extends GraphLayout {
   /**
    * Returns the size for the parent container or the size of the graph container if the parent is a layer or the root of the model.
    */
-  getParentSize(parent: Cell): Rectangle {
-    const model = this.graph.getModel();
-    let pgeo = <Rectangle>parent.getGeometry();
+  getParentSize(parent: Cell): Geometry {
+    const model = this.graph.getDataModel();
+    let pgeo = <Geometry>parent.getGeometry();
 
     // Handles special case where the parent is either a layer with no
     // geometry or the current root of the view in which case the size
@@ -210,7 +211,7 @@ class StackLayout extends GraphLayout {
     ) {
       const width = this.graph.container.offsetWidth - 1;
       const height = this.graph.container.offsetHeight - 1;
-      pgeo = new Rectangle(0, 0, width, height);
+      pgeo = new Geometry(0, 0, width, height);
     }
     return pgeo;
   }
@@ -219,7 +220,7 @@ class StackLayout extends GraphLayout {
    * Returns the cells to be layouted.
    */
   getLayoutCells(parent: Cell): CellArray {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
     const childCount = parent.getChildCount();
     const cells = new CellArray();
 
@@ -233,18 +234,18 @@ class StackLayout extends GraphLayout {
 
     if (this.allowGaps) {
       cells.sort((c1, c2) => {
-        const geo1 = c1.getGeometry();
-        const geo2 = c2.getGeometry();
+        const geo1 = <Geometry>c1.getGeometry();
+        const geo2 = <Geometry>c2.getGeometry();
 
         return this.horizontal
           ? geo1.x === geo2.x
             ? 0
-            : geo1.x > geo2.x > 0
+            : (geo1.x > geo2.x && geo2.x > 0)
             ? 1
             : -1
           : geo1.y === geo2.y
           ? 0
-          : geo1.y > geo2.y > 0
+          : (geo1.y > geo2.y && geo2.y > 0)
           ? 1
           : -1;
       });
@@ -274,16 +275,16 @@ class StackLayout extends GraphLayout {
     if (parent != null) {
       const pgeo = this.getParentSize(parent);
       const horizontal = this.isHorizontal();
-      const model = this.graph.getModel();
+      const model = this.graph.getDataModel();
       let fillValue = null;
 
       if (pgeo != null) {
         fillValue = horizontal
           ? pgeo.height - this.marginTop - this.marginBottom
           : pgeo.width - this.marginLeft - this.marginRight;
+        fillValue -= 2 * this.border;
       }
-
-      fillValue -= 2 * this.border;
+      
       let x0 = this.x0 + this.border + this.marginLeft;
       let y0 = this.y0 + this.border + this.marginTop;
 
@@ -302,7 +303,7 @@ class StackLayout extends GraphLayout {
           }
         }
 
-        if (horizontal === horz) {
+        if (horizontal === horz && fillValue != null) {
           fillValue -= start;
         }
 
@@ -437,7 +438,7 @@ class StackLayout extends GraphLayout {
    * Sets the specific geometry to the given child cell.
    *
    * @param child The given child of <Cell>.
-   * @param geo The specific geometry of <mxGeometry>.
+   * @param geo The specific geometry of {@link Geometry}.
    */
   setChildGeometry(child: Cell, geo: Geometry) {
     const geo2 = child.getGeometry();
@@ -449,7 +450,7 @@ class StackLayout extends GraphLayout {
       geo.width !== geo2.width ||
       geo.height !== geo2.height
     ) {
-      this.graph.getModel().setGeometry(child, geo);
+      this.graph.getDataModel().setGeometry(child, geo);
     }
   }
 
@@ -457,12 +458,12 @@ class StackLayout extends GraphLayout {
    * Updates the geometry of the given parent cell.
    *
    * @param parent The given parent of <Cell>.
-   * @param pgeo The new <mxGeometry> for parent.
-   * @param last The last <mxGeometry>.
+   * @param pgeo The new {@link Geometry} for parent.
+   * @param last The last {@link Geometry}.
    */
   updateParentGeometry(parent: Cell, pgeo: Geometry, last: Geometry) {
     const horizontal = this.isHorizontal();
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
 
     const pgeo2 = pgeo.clone();
 

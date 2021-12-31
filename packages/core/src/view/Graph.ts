@@ -14,16 +14,16 @@ import TooltipHandler from './handler/TooltipHandler';
 import Client from '../Client';
 import SelectionCellsHandler from './handler/SelectionCellsHandler';
 import ConnectionHandler from './handler/ConnectionHandler';
-import GraphHandler from './handler/GraphHandler';
+import SelectionHandler from './handler/SelectionHandler';
 import PanningHandler from './handler/PanningHandler';
 import PopupMenuHandler from './handler/PopupMenuHandler';
 import GraphView from './GraphView';
 import CellRenderer from './cell/CellRenderer';
-import CellEditor from './handler/CellEditor';
+import CellEditorHandler from './handler/CellEditorHandler';
 import Point from './geometry/Point';
 import { getCurrentStyle, hasScrollbars, parseCssNumber } from '../util/styleUtils';
 import Cell from './cell/Cell';
-import Model from './other/Model';
+import GraphDataModel from './GraphDataModel';
 import Stylesheet from './style/Stylesheet';
 import { PAGE_FORMAT_A4_PORTRAIT } from '../util/constants';
 
@@ -41,15 +41,22 @@ import VertexHandler from './handler/VertexHandler';
 import EdgeSegmentHandler from './handler/EdgeSegmentHandler';
 import ElbowEdgeHandler from './handler/ElbowEdgeHandler';
 
-import type { GraphPlugin, GraphPluginConstructor } from '../types';
+import CodecRegistry from '../serialization/CodecRegistry';
+import ObjectCodec from '../serialization/ObjectCodec';
+
+import type { GraphPlugin, GraphPluginConstructor, MouseListenerSet } from '../types';
+import Multiplicity from './other/Multiplicity';
+import CellArray from './cell/CellArray';
+import ImageBundle from './image/ImageBundle';
+import GraphSelectionModel from './GraphSelectionModel';
 
 export const defaultPlugins: GraphPluginConstructor[] = [
-  CellEditor,
+  CellEditorHandler,
   TooltipHandler,
   SelectionCellsHandler,
   PopupMenuHandler,
   ConnectionHandler,
-  GraphHandler,
+  SelectionHandler,
   PanningHandler,
 ];
 
@@ -64,7 +71,7 @@ export const defaultPlugins: GraphPluginConstructor[] = [
  * - tooltipHandler: {@link TooltipHandler} that displays tooltips
  * - panningHandler: {@link PanningHandler} for panning and popup menus
  * - connectionHandler: {@link ConnectionHandler} for creating connections
- * - graphHandler: {@link GraphHandler} for moving and cloning cells
+ * - graphHandler: {@link SelectionHandler} for moving and cloning cells
  *
  * These listeners will be called in the above order if they are enabled.
  * @class graph
@@ -78,15 +85,35 @@ class Graph extends EventSource {
   graphModelChangeListener: Function | null = null;
   paintBackground: Function | null = null;
   foldingEnabled: null | boolean = null;
+  isConstrainedMoving: boolean = false;
+
+  /*****************************************************************************
+   * Group: Variables (that maybe should be in the mixins, but need to be created for each new class instance)
+   *****************************************************************************/
+
+  cells = new CellArray();
+
+  imageBundles: ImageBundle[] = [];
+
+  /**
+   * Holds the mouse event listeners. See {@link fireMouseEvent}.
+   */
+  mouseListeners: MouseListenerSet[] = [];
+
+  /**
+   * An array of {@link Multiplicity} describing the allowed
+   * connections in a graph.
+   */
+  multiplicities: Multiplicity[] = [];
 
   /*****************************************************************************
    * Group: Variables
    *****************************************************************************/
 
   /**
-   * Holds the {@link Model} that contains the cells to be displayed.
+   * Holds the {@link GraphDataModel} that contains the cells to be displayed.
    */
-  model: Model;
+  model: GraphDataModel;
 
   plugins: GraphPluginConstructor[];
   pluginsMap: Record<string, GraphPlugin> = {};
@@ -378,14 +405,14 @@ class Graph extends EventSource {
 
   constructor(
     container: HTMLElement,
-    model?: Model,
+    model?: GraphDataModel,
     plugins: GraphPluginConstructor[] = defaultPlugins,
     stylesheet: Stylesheet | null = null
   ) {
     super();
 
     this.container = container ?? document.createElement('div');
-    this.model = model ?? new Model();
+    this.model = model ?? new GraphDataModel();
     this.plugins = plugins;
     this.cellRenderer = this.createCellRenderer();
     this.setStylesheet(stylesheet != null ? stylesheet : this.createStylesheet());
@@ -395,14 +422,16 @@ class Graph extends EventSource {
     this.graphModelChangeListener = (sender: any, evt: EventObject) => {
       this.graphModelChanged(evt.getProperty('edit').changes);
     };
-
-    this.getModel().addListener(InternalEvent.CHANGE, this.graphModelChangeListener);
+    this.getDataModel().addListener(InternalEvent.CHANGE, this.graphModelChangeListener);
 
     // Initializes the container using the view
     this.view.init();
 
     // Updates the size of the container for the current graph
     this.sizeDidChange();
+
+    // Set the selection model
+    this.setSelectionModel(this.createSelectionModel());
 
     // Initiailzes plugins
     this.plugins.forEach((p: GraphPluginConstructor) => {
@@ -412,38 +441,22 @@ class Graph extends EventSource {
     this.view.revalidate();
   }
 
+  createSelectionModel = () => new GraphSelectionModel(this);
   getContainer = () => this.container;
-
   getPlugin = (id: string) => this.pluginsMap[id] as unknown;
-
-  getCellRenderer() {
-    return this.cellRenderer;
-  }
-
+  getCellRenderer = () => this.cellRenderer;
   getDialect = () => this.dialect;
-
   isPageVisible = () => this.pageVisible;
-
   isPageBreaksVisible = () => this.pageBreaksVisible;
-
   getPageBreakColor = () => this.pageBreakColor;
-
   isPageBreakDashed = () => this.pageBreakDashed;
-
   getMinPageBreakDist = () => this.minPageBreakDist;
-
   isPreferPageSize = () => this.preferPageSize;
-
   getPageFormat = () => this.pageFormat;
-
   getPageScale = () => this.pageScale;
-
   isExportEnabled = () => this.exportEnabled;
-
   isImportEnabled = () => this.importEnabled;
-
   isIgnoreScrollbars = () => this.ignoreScrollbars;
-
   isTranslateToScrollPosition = () => this.translateToScrollPosition;
 
   getMinimumGraphSize = () => this.minimumGraphSize;
@@ -463,11 +476,11 @@ class Graph extends EventSource {
 
   // TODO: Document me!!
   batchUpdate(fn: Function) {
-    this.getModel().beginUpdate();
+    this.getDataModel().beginUpdate();
     try {
       fn();
     } finally {
-      this.getModel().endUpdate();
+      this.getDataModel().endUpdate();
     }
   }
 
@@ -493,9 +506,9 @@ class Graph extends EventSource {
   }
 
   /**
-   * Returns the {@link Model} that contains the cells.
+   * Returns the {@link GraphDataModel} that contains the cells.
    */
-  getModel() {
+  getDataModel() {
     return this.model;
   }
 
@@ -570,7 +583,7 @@ class Graph extends EventSource {
 
       if (
         newParent &&
-        (!this.getModel().contains(newParent) || newParent.isCollapsed())
+        (!this.getDataModel().contains(newParent) || newParent.isCollapsed())
       ) {
         this.view.invalidate(change.child, true, true);
         this.removeStateForCell(change.child);
@@ -760,7 +773,7 @@ class Graph extends EventSource {
   /**
    * Scales the graph such that the complete diagram fits into <container> and
    * returns the current scale in the view. To fit an initial graph prior to
-   * rendering, set <mxGraphView.rendering> to false prior to changing the model
+   * rendering, set {@link GraphView#rendering} to false prior to changing the model
    * and execute the following after changing the model.
    *
    * ```javascript
@@ -931,7 +944,7 @@ class Graph extends EventSource {
 
       const edgeStyle = this.getView().getEdgeStyle(
         state,
-        geo ? geo.points : undefined,
+        geo ? (geo.points || undefined) : undefined,
         source,
         target
       );
@@ -1042,8 +1055,8 @@ class Graph extends EventSource {
 
   /**
    * Returns the offset to be used for the cells inside the given cell. The
-   * root and layer cells may be identified using {@link Model.isRoot} and
-   * {@link Model.isLayer}. For all other current roots, the
+   * root and layer cells may be identified using {@link GraphDataModel.isRoot} and
+   * {@link GraphDataModel.isLayer}. For all other current roots, the
    * {@link GraphView.currentRoot} field points to the respective cell, so that
    * the following holds: cell == this.view.currentRoot. This implementation
    * returns null.
@@ -1192,13 +1205,11 @@ class Graph extends EventSource {
     entity.
      */
     const orthogonal = edge.style.orthogonal;
-
-    if (orthogonal !== null) {
+    if (orthogonal != null) {
       return orthogonal;
     }
 
     const tmp = this.view.getEdgeStyle(edge);
-
     return (
       tmp === EdgeStyle.SegmentConnector ||
       tmp === EdgeStyle.ElbowConnector ||
@@ -1409,7 +1420,7 @@ class Graph extends EventSource {
 
   /**
    * Returns {@link defaultParent} or {@link GraphView.currentRoot} or the first child
-   * child of {@link Model.root} if both are null. The value returned by
+   * child of {@link GraphDataModel.root} if both are null. The value returned by
    * this function should be used as the parent for new cells (aka default
    * layer).
    */
@@ -1420,7 +1431,7 @@ class Graph extends EventSource {
       parent = this.defaultParent;
 
       if (!parent) {
-        const root = <Cell>this.getModel().getRoot();
+        const root = <Cell>this.getDataModel().getRoot();
         parent = root.getChildAt(0);
       }
     }
@@ -1448,11 +1459,43 @@ class Graph extends EventSource {
       this.view.destroy();
 
       if (this.model && this.graphModelChangeListener) {
-        this.getModel().removeListener(this.graphModelChangeListener);
+        this.getDataModel().removeListener(this.graphModelChangeListener);
         this.graphModelChangeListener = null;
       }
     }
   }
 }
 
+/**
+ * Codec for {@link Graph}s. This class is created and registered
+ * dynamically at load time and used implicitly via <Codec>
+ * and the <CodecRegistry>.
+ *
+ * Transient Fields:
+ *
+ * - graphListeners
+ * - eventListeners
+ * - view
+ * - container
+ * - cellRenderer
+ * - editor
+ * - selection
+ */
+
+/*export class GraphCodec extends ObjectCodec {
+  constructor() {
+    // TODO: Register every possible plugin (i.e. all not being excluded via tree-shaking(?))
+    super(new Graph(), [
+      'graphListeners',
+      'eventListeners',
+      'view',
+      'container',
+      'cellRenderer',
+      'editor',
+      'selection',
+    ]);
+  }
+}*/
+
+//CodecRegistry.register(new GraphCodec());
 export { Graph };

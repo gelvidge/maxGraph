@@ -3,14 +3,14 @@
  * Copyright (c) 2006-2019, draw.io AG
  */
 
-import DefaultPopupMenu from './DefaultPopupMenu';
+import EditorPopupMenu from './EditorPopupMenu';
 import UndoManager from '../view/undoable_changes/UndoManager';
-import DefaultKeyHandler from './DefaultKeyHandler';
+import EditorKeyHandler from './EditorKeyHandler';
 import EventSource from '../view/event/EventSource';
 import Translations from '../util/Translations';
 import Client from '../Client';
 import CompactTreeLayout from '../view/layout/CompactTreeLayout';
-import DefaultToolbar from './DefaultToolbar';
+import EditorToolbar from './EditorToolbar';
 import StackLayout from '../view/layout/StackLayout';
 import EventObject from '../view/event/EventObject';
 import { getOffset } from '../util/styleUtils';
@@ -33,13 +33,17 @@ import MaxLog from '../gui/MaxLog';
 import { isNode } from '../util/domUtils';
 import { getViewXml, getXml } from '../util/xmlUtils';
 import { load, post, submit } from '../util/MaxXmlRequest';
-import PopupMenuHandler from 'src/view/handler/PopupMenuHandler';
-import RubberBand from '../view/handler/RubberBand';
+import PopupMenuHandler from '../view/handler/PopupMenuHandler';
+import RubberBandHandler from '../view/handler/RubberBandHandler';
 import InternalEvent from '../view/event/InternalEvent';
-import InternalMouseEvent from 'src/view/event/InternalMouseEvent';
-import { MouseListenerSet } from 'src/types';
-import ConnectionHandler from 'src/view/handler/ConnectionHandler';
-import { show } from 'src/util/printUtils';
+import InternalMouseEvent from '../view/event/InternalMouseEvent';
+import { CellStateStyles, MouseListenerSet } from '../types';
+import ConnectionHandler from '../view/handler/ConnectionHandler';
+import { show } from '../util/printUtils';
+import PanningHandler from '../view/handler/PanningHandler';
+import ObjectCodec from '../serialization/ObjectCodec';
+import CodecRegistry from '../serialization/CodecRegistry';
+import { getChildNodes } from '../util/domUtils';
 
 /**
  * Installs the required language resources at class
@@ -234,7 +238,7 @@ if (mxLoadResources) {
  *
  * ```javascript
  * <Editor>
- *   <DefaultPopupMenu as="popupHandler">
+ *   <EditorPopupMenu as="popupHandler">
  * 		<add as="cut" action="cut" icon="images/cut.gif"/>
  *      ...
  * ```
@@ -243,14 +247,14 @@ if (mxLoadResources) {
  * above configuration. Existing entries may be removed and changed by
  * modifying or removing the respective entries in the configuration.
  * The configuration is read by the {@link DefaultPopupMenuCodec}, the format of the
- * configuration is explained in {@link DefaultPopupMenu.decode}.
+ * configuration is explained in {@link EditorPopupMenu.decode}.
  *
- * The toolbar is defined in the DefaultToolbar section. Items can be added
+ * The toolbar is defined in the EditorToolbar section. Items can be added
  * and removed in this section.
  *
  * ```javascript
  * <Editor>
- *   <DefaultToolbar>
+ *   <EditorToolbar>
  *     <add as="save" action="save" icon="images/save.gif"/>
  *     <add as="Swimlane" template="swimlane" icon="images/swimlane.gif"/>
  *     ...
@@ -392,7 +396,7 @@ if (mxLoadResources) {
  * @class Editor
  * @extends EventSource
  */
-class Editor extends EventSource {
+export class Editor extends EventSource {
   constructor(config: Element) {
     super();
 
@@ -404,7 +408,7 @@ class Editor extends EventSource {
     if (document.body != null) {
       // Defines instance fields
       this.cycleAttributeValues = [];
-      this.popupHandler = new DefaultPopupMenu();
+      this.popupHandler = new EditorPopupMenu();
       this.undoManager = new UndoManager();
 
       // Creates the graph and toolbar without the containers
@@ -412,7 +416,7 @@ class Editor extends EventSource {
       this.toolbar = this.createToolbar();
 
       // Creates the global keyhandler (requires graph instance)
-      this.keyHandler = new DefaultKeyHandler(this);
+      this.keyHandler = new EditorKeyHandler(this);
 
       // Configures the editor using the URI
       // which was passed to the ctor
@@ -434,7 +438,7 @@ class Editor extends EventSource {
   ignoredChanges: number | null=null;
   swimlaneLayout: any;
   diagramLayout: any;
-  rubberband: RubberBand | null=null;
+  rubberband: RubberBandHandler | null=null;
   isActive: boolean | null=null;
   properties: any;
   destroyed: boolean=false;
@@ -517,7 +521,7 @@ class Editor extends EventSource {
   graphRenderHint: any = null;
 
   /**
-   * Holds a {@link DefaultToolbar} for displaying the toolbar. The
+   * Holds a {@link EditorToolbar} for displaying the toolbar. The
    * toolbar is created in {@link setToolbarContainer}.
    */
   toolbar: any = null;
@@ -529,9 +533,9 @@ class Editor extends EventSource {
   status: any = null;
 
   /**
-   * Holds a {@link DefaultPopupMenu} for displaying popupmenus.
+   * Holds a {@link EditorPopupMenu} for displaying popupmenus.
    */
-  popupHandler: DefaultPopupMenu | null = null;
+  popupHandler: EditorPopupMenu | null = null;
 
   /**
    * Holds an {@link UndoManager} for the command history.
@@ -539,10 +543,10 @@ class Editor extends EventSource {
   undoManager: UndoManager | null = null;
 
   /**
-   * Holds a {@link DefaultKeyHandler} for handling keyboard events.
+   * Holds a {@link EditorKeyHandler} for handling keyboard events.
    * The handler is created in {@link setGraphContainer}.
    */
-  keyHandler: DefaultKeyHandler | null = null;
+  keyHandler: EditorKeyHandler | null = null;
 
   /**
    * Maps from actionnames to actions, which are functions taking
@@ -599,7 +603,7 @@ class Editor extends EventSource {
   /**
    * Specifies the function to be used for inserting new
    * cells into the graph. This is assigned from the
-   * {@link DefaultToolbar} if a vertex-tool is clicked.
+   * {@link EditorToolbar} if a vertex-tool is clicked.
    */
   insertFunction: Function | null = null;
 
@@ -640,7 +644,7 @@ class Editor extends EventSource {
 
   /**
    * Default size for the border of new groups. If null,
-   * then then <mxGraph.gridSize> is used. Default is null.
+   * then then {@link Graph#gridSize} is used. Default is null.
    * @default null
    */
   groupBorderSize: any = null;
@@ -947,7 +951,7 @@ class Editor extends EventSource {
       if (url == null || Client.IS_LOCAL) {
         editor.execute('show');
       } else {
-        const node = getViewXml(editor.graph, 1);
+        const node = <Element>getViewXml(editor.graph, 1);
         const xml = getXml(node, '\n');
 
         submit(
@@ -1231,13 +1235,14 @@ class Editor extends EventSource {
 
     this.addAction('zoom', (editor: Editor) => {
       const current = editor.graph.getView().scale * 100;
-      const scale =
-        parseFloat(
-          prompt((Translations.get(editor.askZoomResource) || editor.askZoomResource), current)
-        ) / 100;
-
-      if (!isNaN(scale)) {
-        editor.graph.getView().setScale(scale);
+      const preInput = prompt((Translations.get(editor.askZoomResource) || editor.askZoomResource), String(current));
+      
+      if (preInput) {
+        const scale = parseFloat(preInput) / 100;
+        
+        if (!isNaN(scale)) {
+          editor.graph.getView().setScale(scale);
+        }
       }
     });
 
@@ -1346,7 +1351,7 @@ class Editor extends EventSource {
    * @param cell
    * @param evt
    */
-  execute(actionname: string, cell?: Cell, evt?: Event): void {
+  execute(actionname: string, cell: Cell | null=null, evt: Event | null=null): void {
     const action = this.actions[actionname];
 
     if (action != null) {
@@ -1390,7 +1395,8 @@ class Editor extends EventSource {
    * @returns graph instance
    */
   createGraph(): Graph {
-    const graph = new Graph();
+    const __dummy: any = undefined;
+    const graph = new Graph(__dummy);
 
     // Enables rubberband, tooltips, panning
     graph.setTooltips(true);
@@ -1469,7 +1475,7 @@ class Editor extends EventSource {
     const self = this; // closure
     layoutMgr.getLayout = (cell: Cell) => {
       let layout = null;
-      const model = self.graph.getModel();
+      const model = self.graph.getDataModel();
 
       if (cell.getParent() != null) {
         // Executes the swimlane layout if a child of
@@ -1512,11 +1518,13 @@ class Editor extends EventSource {
     if (this.graph.container == null) {
       // Creates the graph instance inside the given container and render hint
       // this.graph = new mxGraph(container, null, this.graphRenderHint);
+
+      // @ts-ignore  TODO: FIXME!! ==============================================================================================
       this.graph.init(container);
 
       // Install rubberband selection as the last
       // action handler in the chain
-      this.rubberband = new RubberBand(this.graph);
+      this.rubberband = new RubberBandHandler(this.graph);
 
       // Disables the context menu
       if (this.disableContextMenu) {
@@ -1552,7 +1560,7 @@ class Editor extends EventSource {
       (<UndoManager>this.undoManager).undoableEditHappened(edit);
     };
 
-    graph.getModel().addListener(InternalEvent.UNDO, listener);
+    graph.getDataModel().addListener(InternalEvent.UNDO, listener);
     graph.getView().addListener(InternalEvent.UNDO, listener);
 
     // Keeps the selection state in sync
@@ -1612,7 +1620,7 @@ class Editor extends EventSource {
       }
     };
 
-    graph.getModel().addListener(InternalEvent.CHANGE, listener);
+    graph.getDataModel().addListener(InternalEvent.CHANGE, listener);
   }
 
   /**
@@ -1689,10 +1697,10 @@ class Editor extends EventSource {
 
   /**
    * Creates the {@link toolbar} with no container.
-   * @returns DefaultToolbar instance
+   * @returns EditorToolbar instance
    */
-  createToolbar(): DefaultToolbar {
-    return new DefaultToolbar(null, this);
+  createToolbar(): EditorToolbar {
+    return new EditorToolbar(null, this);
   }
 
   /**
@@ -1797,7 +1805,7 @@ class Editor extends EventSource {
    * Returns the string value of the root cell in {@link graph.model}.
    */
   getRootTitle(): string {
-    const root = <Cell>this.graph.getModel().getRoot();
+    const root = <Cell>this.graph.getDataModel().getRoot();
     return this.graph.convertValueToString(root);
   }
 
@@ -1832,7 +1840,7 @@ class Editor extends EventSource {
    * @returns Cell
    */
   createGroup(): Cell {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
     return <Cell>model.cloneCell(this.defaultGroup);
   }
 
@@ -1862,7 +1870,7 @@ class Editor extends EventSource {
       this.readGraphModel(xml.documentElement);
       this.filename = filename;
 
-      this.fireEvent(new EventObject(InternalEvent.OPEN, 'filename', filename));
+      this.fireEvent(new EventObject(InternalEvent.OPEN, { filename }));
     }
   }
 
@@ -1873,7 +1881,7 @@ class Editor extends EventSource {
    */
   readGraphModel(node: any): void {
     const dec = new Codec(node.ownerDocument);
-    dec.decode(node, this.graph.getModel());
+    dec.decode(node, this.graph.getDataModel());
     this.resetHistory();
   }
 
@@ -1913,7 +1921,7 @@ class Editor extends EventSource {
     }
 
     // Dispatches a save event
-    this.fireEvent(new EventObject(InternalEvent.SAVE, 'url', url));
+    this.fireEvent(new EventObject(InternalEvent.SAVE, { url }));
   }
 
   /**
@@ -1945,9 +1953,7 @@ class Editor extends EventSource {
     }
 
     post(url, `${this.postParameterName}=${data}`, (req: string) => {
-      this.fireEvent(
-        new EventObject(InternalEvent.POST, 'request', req, 'url', url, 'data', data)
-      );
+      this.fireEvent(new EventObject(InternalEvent.POST, { request: req, url, data }));
     });
   }
 
@@ -1959,7 +1965,7 @@ class Editor extends EventSource {
    * @example
    * ```javascript
    * var enc = new Codec();
-   * var node = enc.encode(this.graph.getModel());
+   * var node = enc.encode(this.graph.getDataModel());
    * return mxUtils.getXml(node, this.linefeed);
    * ```
    *
@@ -1968,7 +1974,7 @@ class Editor extends EventSource {
   writeGraphModel(linefeed: string): string {
     linefeed = linefeed != null ? linefeed : this.linefeed;
     const enc = new Codec();
-    const node = enc.encode(this.graph.getModel());
+    const node = <Element>enc.encode(this.graph.getDataModel());
     return getXml(node, linefeed);
   }
 
@@ -1998,11 +2004,14 @@ class Editor extends EventSource {
    * @param first
    * @param second
    */
-  swapStyles(first: string, second: string): void {
+  swapStyles(first: keyof CellStateStyles, second: string): void {
+    // @ts-ignore
     const style = this.graph.getStylesheet().styles[second];
     this.graph
       .getView()
+      // @ts-ignore
       .getStylesheet()
+      // @ts-ignore
       .putCellStyle(second, this.graph.getStylesheet().styles[first]);
     this.graph.getStylesheet().putCellStyle(first, style);
     this.graph.refresh();
@@ -2024,7 +2033,7 @@ class Editor extends EventSource {
       cell = this.graph.getCurrentRoot();
 
       if (cell == null) {
-        cell = this.graph.getModel().getRoot();
+        cell = this.graph.getDataModel().getRoot();
       }
     }
 
@@ -2090,7 +2099,7 @@ class Editor extends EventSource {
    * node attributes in a form.
    */
   createProperties(cell: Cell): HTMLTableElement | null {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
     const value = cell.getValue();
 
     if (isNode(value)) {
@@ -2268,7 +2277,7 @@ class Editor extends EventSource {
         this.createTasks(div);
       };
 
-      this.graph.getModel().addListener(InternalEvent.CHANGE, funct);
+      this.graph.getDataModel().addListener(InternalEvent.CHANGE, funct);
       this.graph.getSelectionModel().addListener(InternalEvent.CHANGE, funct);
       this.graph.addListener(InternalEvent.ROOT, funct);
 
@@ -2319,7 +2328,7 @@ class Editor extends EventSource {
   showHelp(tasks: any | null=null): void {
     if (this.help == null) {
       const frame = document.createElement('iframe');
-      frame.setAttribute('src', Translations.get('urlHelp') || this.urlHelp);
+      frame.setAttribute('src', <string>(Translations.get('urlHelp') || this.urlHelp));
       frame.setAttribute('height', '100%');
       frame.setAttribute('width', '100%');
       frame.setAttribute('frameBorder', '0');
@@ -2418,14 +2427,16 @@ class Editor extends EventSource {
    * @param modename
    */
   setMode(modename: any): void {
+    const panningHandler: PanningHandler = <PanningHandler>this.graph.getPlugin('PanningHandler');
+
     if (modename === 'select') {
-      this.graph.panningHandler.useLeftButtonForPanning = false;
+      panningHandler.useLeftButtonForPanning = false;
       this.graph.setConnectable(false);
     } else if (modename === 'connect') {
-      this.graph.panningHandler.useLeftButtonForPanning = false;
+      panningHandler.useLeftButtonForPanning = false;
       this.graph.setConnectable(true);
     } else if (modename === 'pan') {
-      this.graph.panningHandler.useLeftButtonForPanning = true;
+      panningHandler.useLeftButtonForPanning = true;
       this.graph.setConnectable(false);
     }
   }
@@ -2438,7 +2449,7 @@ class Editor extends EventSource {
    * @param evt
    */
   createPopupMenu(menu: any, cell: Cell | null, evt: any): void {
-    (<DefaultPopupMenu>this.popupHandler).createMenu(this, menu, cell, evt);
+    (<EditorPopupMenu>this.popupHandler).createMenu(this, menu, cell, evt);
   }
 
   /**
@@ -2453,7 +2464,7 @@ class Editor extends EventSource {
     let e: Cell;
 
     if (this.defaultEdge != null) {
-      const model = this.graph.getModel();
+      const model = this.graph.getDataModel();
       e = <Cell>model.cloneCell(this.defaultEdge);
     } else {
       e = new Cell('');
@@ -2521,7 +2532,7 @@ class Editor extends EventSource {
    * @param y
    */
   addVertex(parent: Cell | null, vertex: Cell, x: number, y: number): any {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
 
     while (parent != null && !this.graph.isValidDropTarget(parent)) {
       parent = parent.getParent();
@@ -2581,7 +2592,7 @@ class Editor extends EventSource {
 
     this.cycleAttribute(vertex);
     this.fireEvent(
-      new EventObject(InternalEvent.BEFORE_ADD_VERTEX, 'vertex', vertex, 'parent', parent)
+      new EventObject(InternalEvent.BEFORE_ADD_VERTEX, { vertex: vertex, parent: parent })
     );
 
     model.beginUpdate();
@@ -2591,7 +2602,7 @@ class Editor extends EventSource {
       if (vertex != null) {
         this.graph.constrainChild(vertex);
 
-        this.fireEvent(new EventObject(InternalEvent.ADD_VERTEX, 'vertex', vertex));
+        this.fireEvent(new EventObject(InternalEvent.ADD_VERTEX, { vertex: vertex }));
       }
     } finally {
       model.endUpdate();
@@ -2600,7 +2611,7 @@ class Editor extends EventSource {
     if (vertex != null) {
       this.graph.setSelectionCell(vertex);
       this.graph.scrollCellToVisible(vertex);
-      this.fireEvent(new EventObject(InternalEvent.AFTER_ADD_VERTEX, 'vertex', vertex));
+      this.fireEvent(new EventObject(InternalEvent.AFTER_ADD_VERTEX, { vertex: vertex }));
     }
     return vertex;
   }
@@ -2631,7 +2642,7 @@ class Editor extends EventSource {
       }
 
       if (this.rubberband != null) {
-        this.rubberband.destroy();
+        this.rubberband.onDestroy();
       }
 
       if (this.toolbar != null) {
@@ -2648,5 +2659,216 @@ class Editor extends EventSource {
   }
 }
 
+/**
+ * Codec for <Editor>s. This class is created and registered
+ * dynamically at load time and used implicitly via <Codec>
+ * and the <CodecRegistry>.
+ *
+ * Transient Fields:
+ *
+ * - modified
+ * - lastSnapshot
+ * - ignoredChanges
+ * - undoManager
+ * - graphContainer
+ * - toolbarContainer
+ */
+export class EditorCodec extends ObjectCodec {
+  constructor() {
+    const __dummy: any = undefined;
+    super(new Editor(__dummy), [
+      'modified',
+      'lastSnapshot',
+      'ignoredChanges',
+      'undoManager',
+      'graphContainer',
+      'toolbarContainer',
+    ]);
+  }
+
+  /**
+   * Decodes the ui-part of the configuration node by reading
+   * a sequence of the following child nodes and attributes
+   * and passes the control to the default decoding mechanism:
+   *
+   * Child Nodes:
+   *
+   * stylesheet - Adds a CSS stylesheet to the document.
+   * resource - Adds the basename of a resource bundle.
+   * add - Creates or configures a known UI element.
+   *
+   * These elements may appear in any order given that the
+   * graph UI element is added before the toolbar element
+   * (see Known Keys).
+   *
+   * Attributes:
+   *
+   * as - Key for the UI element (see below).
+   * element - ID for the element in the document.
+   * style - CSS style to be used for the element or window.
+   * x - X coordinate for the new window.
+   * y - Y coordinate for the new window.
+   * width - Width for the new window.
+   * height - Optional height for the new window.
+   * name - Name of the stylesheet (absolute/relative URL).
+   * basename - Basename of the resource bundle (see {@link Resources}).
+   *
+   * The x, y, width and height attributes are used to create a new
+   * <MaxWindow> if the element attribute is not specified in an add
+   * node. The name and basename are only used in the stylesheet and
+   * resource nodes, respectively.
+   *
+   * Known Keys:
+   *
+   * graph - Main graph element (see <Editor.setGraphContainer>).
+   * title - Title element (see <Editor.setTitleContainer>).
+   * toolbar - Toolbar element (see <Editor.setToolbarContainer>).
+   * status - Status bar element (see <Editor.setStatusContainer>).
+   *
+   * Example:
+   *
+   * ```javascript
+   * <ui>
+   *   <stylesheet name="css/process.css"/>
+   *   <resource basename="resources/app"/>
+   *   <add as="graph" element="graph"
+   *     style="left:70px;right:20px;top:20px;bottom:40px"/>
+   *   <add as="status" element="status"/>
+   *   <add as="toolbar" x="10" y="20" width="54"/>
+   * </ui>
+   * ```
+   */
+  afterDecode(dec: Codec, node: Element, obj: any): any {
+    // Assigns the specified templates for edges
+    const defaultEdge = node.getAttribute('defaultEdge');
+
+    if (defaultEdge != null) {
+      node.removeAttribute('defaultEdge');
+      obj.defaultEdge = obj.templates[defaultEdge];
+    }
+
+    // Assigns the specified templates for groups
+    const defaultGroup = node.getAttribute('defaultGroup');
+
+    if (defaultGroup != null) {
+      node.removeAttribute('defaultGroup');
+      obj.defaultGroup = obj.templates[defaultGroup];
+    }
+    return obj;
+  }
+
+  /**
+   * Overrides decode child to handle special child nodes.
+   */
+  decodeChild(dec: Codec, child: Element, obj: any) {
+    if (child.nodeName === 'Array') {
+      const role = child.getAttribute('as');
+
+      if (role === 'templates') {
+        this.decodeTemplates(dec, child, obj);
+        return;
+      }
+    } else if (child.nodeName === 'ui') {
+      this.decodeUi(dec, child, obj);
+      return;
+    }
+    super.decodeChild.apply(this, [dec, child, obj]);
+  }
+
+  /**
+   * Decodes the ui elements from the given node.
+   */
+  decodeUi(dec: Codec, node: Element, editor: Editor) {
+    let tmp = <Element>node.firstChild;
+    while (tmp != null) {
+      if (tmp.nodeName === 'add') {
+        const as = <string>tmp.getAttribute('as');
+        const elt = tmp.getAttribute('element');
+        const style = tmp.getAttribute('style');
+        let element = null;
+
+        if (elt != null) {
+          element = document.getElementById(elt);
+
+          if (element != null && style != null) {
+            element.style.cssText += `;${style}`;
+          }
+        } else {
+          const x = parseInt(<string>tmp.getAttribute('x'));
+          const y = parseInt(<string>tmp.getAttribute('y'));
+          const width = tmp.getAttribute('width') || null;
+          const height = tmp.getAttribute('height') || null;
+
+          // Creates a new window around the element
+          element = document.createElement('div');
+          if (style != null) {
+            element.style.cssText = style;
+          }
+
+          const wnd = new MaxWindow(
+            Translations.get(as) || as,
+            element,
+            x,
+            y,
+            width ? parseInt(width) : null,
+            height ? parseInt(height) : null,
+            false,
+            true
+          );
+          wnd.setVisible(true);
+        }
+
+        // TODO: Make more generic
+        if (as === 'graph') {
+          editor.setGraphContainer(element);
+        } else if (as === 'toolbar') {
+          editor.setToolbarContainer(element);
+        } else if (as === 'title') {
+          editor.setTitleContainer(element);
+        } else if (as === 'status') {
+          editor.setStatusContainer(element);
+        } else if (as === 'map') {
+          throw new Error("Unimplemented");
+          //editor.setMapContainer(element);
+        }
+      } else if (tmp.nodeName === 'resource') {
+        Translations.add(<string>tmp.getAttribute('basename'));
+      } else if (tmp.nodeName === 'stylesheet') {
+        Client.link('stylesheet', <string>tmp.getAttribute('name'));
+      }
+
+      tmp = <Element>tmp.nextSibling;
+    }
+  }
+
+  /**
+   * Decodes the cells from the given node as templates.
+   */
+  decodeTemplates(dec: Codec, node: Element, editor: Editor) {
+    if (editor.templates == null) {
+      editor.templates = [];
+    }
+
+    const children = <Element[]>getChildNodes(node);
+    for (let j = 0; j < children.length; j++) {
+      const name = <string>children[j].getAttribute('as');
+      let child = <Element | null>children[j].firstChild;
+
+      while (child != null && child.nodeType !== 1) {
+        child = <Element | null>child.nextSibling;
+      }
+
+      if (child != null) {
+        // LATER: Only single cells means you need
+        // to group multiple cells within another
+        // cell. This should be changed to support
+        // arrays of cells, or the wrapper must
+        // be automatically handled in this class.
+        editor.templates[name] = dec.decodeCell(child);
+      }
+    }
+  }
+}
+
+CodecRegistry.register(new EditorCodec());
 export default Editor;
-// import('../serialization/EditorCodec');

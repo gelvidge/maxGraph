@@ -1,5 +1,7 @@
 import { isNullish } from '../../util/utils';
 import Cell from '../cell/Cell';
+import CodecRegistry from '../../serialization/CodecRegistry';
+import GenericChangeCodec from './GenericChangeCodec';
 
 import type { UndoableChange } from '../../types';
 
@@ -48,7 +50,7 @@ class CellAttributeChange implements UndoableChange {
 
   /**
    * Changes the attribute of the cell's user object by
-   * using <mxCell.setAttribute>.
+   * using {@link Cell#setAttribute}.
    */
   execute(): void {
     const tmp = this.cell.getAttribute(this.attribute);
@@ -63,4 +65,8 @@ class CellAttributeChange implements UndoableChange {
   }
 }
 
+const __dummy: any = undefined;
+CodecRegistry.register(
+  new GenericChangeCodec(new CellAttributeChange(__dummy, __dummy, __dummy), 'value')
+);
 export default CellAttributeChange;

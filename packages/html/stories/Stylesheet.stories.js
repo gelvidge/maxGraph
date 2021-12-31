@@ -39,7 +39,7 @@ const Template = ({ label, ...args }) => {
   graph.setTooltips(true);
   graph.getTooltip = function (state) {
     const { cell } = state;
-    const model = this.getModel();
+    const model = this.getDataModel();
 
     if (modcellel.isEdge()) {
       const source = this.getLabel(cell.getTerminal(true));
@@ -52,27 +52,27 @@ const Template = ({ label, ...args }) => {
 
   // Creates the default style for vertices
   let style = [];
-  style.shape = constants.SHAPE_RECTANGLE;
+  style.shape = constants.SHAPE.RECTANGLE;
   style.perimiter = Perimeter.RectanglePerimeter;
   style.strokeColor = 'gray';
   style.rounded = true;
   style.fillColor = '#EEEEEE';
   style.gradientColor = 'white';
   style.fontColor = '#774400';
-  style.align = constants.ALIGN_CENTER;
-  style.verticalAlign = constants.ALIGN_MIDDLE;
+  style.align = constants.ALIGN.CENTER;
+  style.verticalAlign = constants.ALIGN.MIDDLE;
   style.fontSize = '12';
   style.fontStyle = 1;
   graph.getStylesheet().putDefaultVertexStyle(style);
 
   // Creates the default style for edges
   style = [];
-  style.shape = constants.SHAPE_CONNECTOR;
+  style.shape = constants.SHAPE.CONNECTOR;
   style.strokeColor = '#6482B9';
-  style.align = constants.ALIGN_CENTER;
-  style.verticalAlign = constants.ALIGN_MIDDLE;
+  style.align = constants.ALIGN.CENTER;
+  style.verticalAlign = constants.ALIGN.MIDDLE;
   style.edge = EdgeStyle.ElbowConnector;
-  style.endArrow = constants.ARROW_CLASSIC;
+  style.endArrow = constants.ARROW.CLASSIC;
   style.fontSize = '10';
   graph.getStylesheet().putDefaultEdgeStyle(style);
 
@@ -81,8 +81,7 @@ const Template = ({ label, ...args }) => {
   const parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const v1 = graph.insertVertex(parent, null, 'Interval 1', 20, 20, 180, 30);
     const v2 = graph.insertVertex(parent, null, 'Interval 2', 140, 80, 280, 30);
     const v3 = graph.insertVertex(parent, null, 'Interval 3', 200, 140, 360, 30);
@@ -98,10 +97,7 @@ const Template = ({ label, ...args }) => {
     e4.getGeometry().points = [{ x: 500, y: 180 }];
     const e5 = graph.insertEdge(parent, null, '5', v3, v5);
     e5.getGeometry().points = [{ x: 380, y: 180 }];
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   return container;
 };

@@ -1,15 +1,16 @@
 import {
   Graph,
-  RubberBand,
+  RubberBandHandler,
   ConnectionHandler,
   ImageBox,
   MaxToolbar,
-  Model,
-  mxKeyHandler,
+  GraphDataModel,
+  KeyHandler,
   Cell,
   Geometry,
   InternalEvent,
   utils,
+  styleUtils,
   gestureUtils,
 } from '@maxgraph/core';
 
@@ -64,7 +65,7 @@ const Template = ({ label, ...args }) => {
 
   // Creates the model and the graph inside the container
   // using the fastest rendering available on the browser
-  const model = new Model();
+  const model = new GraphDataModel();
   const graph = new Graph(container, model);
 
   // Enables new connections in the graph
@@ -72,9 +73,9 @@ const Template = ({ label, ...args }) => {
   graph.setMultigraph(false);
 
   // Stops editing on enter or escape keypress
-  const keyHandler = new mxKeyHandler(graph);
+  const keyHandler = new KeyHandler(graph);
 
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   addVertex('/images/rectangle.gif', 100, 40, '');
   addVertex('/images/rounded.gif', 100, 40, 'shape=rounded');
@@ -93,7 +94,7 @@ const Template = ({ label, ...args }) => {
 
     graph.getSelectionModel().addListener(InternalEvent.CHANGE, () => {
       const tmp = graph.isSelectionEmpty();
-      utils.setOpacity(img, tmp ? 100 : 20);
+      styleUtils.setOpacity(img, tmp ? 100 : 20);
       img.enabled = tmp;
     });
   }
@@ -105,7 +106,7 @@ const Template = ({ label, ...args }) => {
     const funct = (graph, evt, cell, x, y) => {
       graph.stopEditing(false);
 
-      const vertex = graph.getModel().cloneCell(prototype);
+      const vertex = graph.getDataModel().cloneCell(prototype);
       vertex.geometry.x = x;
       vertex.geometry.y = y;
 

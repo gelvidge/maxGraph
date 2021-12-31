@@ -9,13 +9,13 @@ import { DIALECT, NODETYPE, NS_SVG } from './constants';
 import Point from '../view/geometry/Point';
 import Cell from '../view/cell/Cell';
 import CellArray from '../view/cell/CellArray';
-import { Graph } from 'src/view/Graph';
+import { Graph } from '../view/Graph';
 import { htmlEntities, trim } from './stringUtils';
-import TemporaryCellStates from 'src/view/cell/TemporaryCellStates';
+import TemporaryCellStates from '../view/cell/TemporaryCellStates';
 
 import type { StyleValue } from '../types';
 import { getTextContent } from './domUtils';
-import Codec from 'src/serialization/Codec';
+import Codec from '../serialization/Codec';
 
 /**
  * Returns a new, empty XML document.
@@ -23,6 +23,10 @@ import Codec from 'src/serialization/Codec';
 export const createXmlDocument = () => {
   return document.implementation.createDocument('', '', null);
 };
+
+export const parseXml = (xmlString: string): HTMLElement => {
+  return new DOMParser().parseFromString(xmlString, 'text/xml').documentElement;
+}
 
 export const getViewXml = (
   graph: Graph, 
@@ -33,7 +37,7 @@ export const getViewXml = (
 ) => {
   
   if (cells == null) {
-    const model = graph.getModel();
+    const model = graph.getDataModel();
     cells = new CellArray(<Cell>model.getRoot());
   }
 
@@ -99,17 +103,8 @@ export const getViewXml = (
  * &#xa;
  */
 export const getXml = (node: Element, linefeed: string='&#xa;'): string => {
-  let xml = '';
-
-  if (window.XMLSerializer != null) {
-    const xmlSerializer = new XMLSerializer();
-    xml = xmlSerializer.serializeToString(node);
-  } else if (node.xml != null) {
-    xml = node.xml
-      .replace(/\r\n\t[\t]*/g, '')
-      .replace(/>\r\n/g, '>')
-      .replace(/\r\n/g, '\n');
-  }
+  const xmlSerializer = new XMLSerializer();
+  let xml = xmlSerializer.serializeToString(node);
 
   // Replaces linefeeds with HTML Entities.
   linefeed = linefeed || '&#xa;';

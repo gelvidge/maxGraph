@@ -59,13 +59,13 @@ import InternalMouseEvent from '../event/InternalMouseEvent';
 import Cell from '../cell/Cell';
 import ImageBox from '../image/ImageBox';
 import EventSource from '../event/EventSource';
-import GraphHandler from './GraphHandler';
+import SelectionHandler from './SelectionHandler';
 import { equalPoints } from '../../util/arrayUtils';
 
 /**
  * Graph event handler that reconnects edges and modifies control points and the edge
  * label location.
- * Uses <mxTerminalMarker> for finding and highlighting new source and target vertices.
+ * Uses {@link TerminalMarker} for finding and highlighting new source and target vertices.
  * This handler is automatically created in mxGraph.createHandler for each selected edge.
  * **To enable adding/removing control points, the following code can be used**
  * @example
@@ -78,7 +78,7 @@ import { equalPoints } from '../../util/arrayUtils';
  */
 class EdgeHandler {
   /**
-   * Reference to the enclosing <mxGraph>.
+   * Reference to the enclosing {@link Graph}.
    */
   graph: Graph;
 
@@ -88,12 +88,12 @@ class EdgeHandler {
   state: CellState;
 
   /**
-   * Holds the <mxTerminalMarker> which is used for highlighting terminals.
+   * Holds the {@link TerminalMarker} which is used for highlighting terminals.
    */
   marker: CellMarker;
 
   /**
-   * Holds the <mxConstraintHandler> used for drawing and highlighting
+   * Holds the {@link ConstraintHandler} used for drawing and highlighting
    * constraints.
    */
   constraintHandler: ConstraintHandler;
@@ -104,19 +104,19 @@ class EdgeHandler {
   error: string | null = null;
 
   /**
-   * Holds the <mxShape> that represents the preview edge.
+   * Holds the {@link Shape} that represents the preview edge.
    */
   shape: Shape;
 
   /**
-   * Holds the <mxShapes> that represent the points.
+   * Holds the {@link Shapes} that represent the points.
    */
   bends: Shape[] = [];
 
   virtualBends: Shape[] = [];
 
   /**
-   * Holds the <mxShape> that represents the label position.
+   * Holds the {@link Shape} that represents the label position.
    */
   labelShape: Shape;
 
@@ -194,7 +194,7 @@ class EdgeHandler {
   snapToTerminals = false;
 
   /**
-   * Optional <mxImage> to be used as handles. Default is null.
+   * Optional {@link Image} to be used as handles. Default is null.
    */
   handleImage: ImageBox | null = null;
 
@@ -301,7 +301,7 @@ class EdgeHandler {
       }
     }
 
-    const graphHandler = this.graph.getPlugin('GraphHandler') as GraphHandler;
+    const graphHandler = this.graph.getPlugin('SelectionHandler') as SelectionHandler;
 
     // Creates bends for the non-routed absolute points
     // or bends that don't correspond to points
@@ -387,7 +387,9 @@ class EdgeHandler {
           // VML dialect required here for event transparency in IE
           this.parentHighlight.dialect = DIALECT.SVG;
           this.parentHighlight.pointerEvents = false;
-          this.parentHighlight.rotation = pstate.style.rotation;
+          if (pstate.style.rotation) {
+            this.parentHighlight.rotation = pstate.style.rotation;
+          }
           this.parentHighlight.init(this.graph.getView().getOverlayPane());
           this.parentHighlight.redraw();
 
@@ -484,21 +486,21 @@ class EdgeHandler {
   }
 
   /**
-   * Returns <mxConstants.EDGE_SELECTION_COLOR>.
+   * Returns {@link Constants#EDGE_SELECTION_COLOR}.
    */
   getSelectionColor() {
     return EDGE_SELECTION_COLOR;
   }
 
   /**
-   * Returns <mxConstants.EDGE_SELECTION_STROKEWIDTH>.
+   * Returns {@link Constants#EDGE_SELECTION_STROKEWIDTH}.
    */
   getSelectionStrokeWidth() {
     return EDGE_SELECTION_STROKEWIDTH;
   }
 
   /**
-   * Returns <mxConstants.EDGE_SELECTION_DASHED>.
+   * Returns {@link Constants#EDGE_SELECTION_DASHED}.
    */
   isSelectionDashed() {
     return EDGE_SELECTION_DASHED;
@@ -513,14 +515,14 @@ class EdgeHandler {
   }
 
   /**
-   * Creates and returns the <mxCellMarker> used in <marker>.
+   * Creates and returns the {@link CellMarker} used in {@link arker}.
    */
   getCellAt(x: number, y: number) {
     return !this.outlineConnect ? this.graph.getCellAt(x, y) : null;
   }
 
   /**
-   * Creates and returns the <mxCellMarker> used in <marker>.
+   * Creates and returns the {@link CellMarker} used in {@link arker}.
    */
   createMarker() {
     const self = this; // closure
@@ -592,7 +594,7 @@ class EdgeHandler {
   /**
    * Returns the error message or an empty string if the connection for the
    * given source, target pair is not valid. Otherwise it returns null. This
-   * implementation uses <mxGraph.getEdgeValidationError>.
+   * implementation uses {@link Graph#getEdgeValidationError}.
    *
    * @param source <Cell> that represents the source terminal.
    * @param target <Cell> that represents the target terminal.
@@ -603,7 +605,7 @@ class EdgeHandler {
 
   /**
    * Creates and returns the bends used for modifying the edge. This is
-   * typically an array of <mxRectangleShapes>.
+   * typically an array of {@link RectangleShapes}.
    */
   createBends() {
     const { cell } = this.state;
@@ -644,7 +646,7 @@ class EdgeHandler {
 
   /**
    * Creates and returns the bends used for modifying the edge. This is
-   * typically an array of <mxRectangleShapes>.
+   * typically an array of {@link RectangleShapes}.
    */
   // createVirtualBends(): mxRectangleShape[];
   createVirtualBends() {
@@ -693,7 +695,7 @@ class EdgeHandler {
   /**
    * Creates the shape used to display the given bend. Note that the index may be
    * null for special cases, such as when called from
-   * <mxElbowEdgeHandler.createVirtualBend>. Only images and rectangles should be
+   * {@link ElbowEdgeHandler#createVirtualBend}. Only images and rectangles should be
    * returned if support for HTML labels with not foreign objects is required.
    * Index if null for virtual handles.
    */
@@ -748,7 +750,7 @@ class EdgeHandler {
   /**
    * Helper method to initialize the given bend.
    *
-   * @param bend <mxShape> that represents the bend to be initialized.
+   * @param bend {@link Shape} that represents the bend to be initialized.
    */
   initBend(bend: Shape, dblClick?: (evt: MouseEvent) => void) {
     if (this.preferHtml) {
@@ -871,7 +873,6 @@ class EdgeHandler {
 
     if (handle !== null && this.bends[handle]) {
       const b = this.bends[handle].bounds;
-
       if (b) this.snapPoint = new Point(b.getCenterX(), b.getCenterY());
     }
 
@@ -890,10 +891,8 @@ class EdgeHandler {
         if (handle <= InternalEvent.VIRTUAL_HANDLE) {
           setOpacity(this.virtualBends[InternalEvent.VIRTUAL_HANDLE - handle].node, 100);
         }
-
         this.start(me.getX(), me.getY(), handle);
       }
-
       me.consume();
     }
   }
@@ -1036,12 +1035,10 @@ class EdgeHandler {
       if (!overrideX) {
         point.x = (this.graph.snap(point.x / scale - tr.x) + tr.x) * scale;
       }
-
       if (!overrideY) {
         point.y = (this.graph.snap(point.y / scale - tr.y) + tr.y) * scale;
       }
     }
-
     return point;
   }
 
@@ -1118,8 +1115,8 @@ class EdgeHandler {
   /**
    * Updates the given preview state taking into account the state of the constraint handler.
    *
-   * @param pt <mxPoint> that contains the current pointer position.
-   * @param me Optional <mxMouseEvent> that contains the current event.
+   * @param pt {@link Point} that contains the current pointer position.
+   * @param me Optional {@link MouseEvent} that contains the current event.
    */
   getPreviewPoints(pt: Point, me?: InternalMouseEvent) {
     const geometry = this.state.cell.getGeometry();
@@ -1491,7 +1488,7 @@ class EdgeHandler {
 
   /**
    * Handles the event to applying the previewed changes on the edge by
-   * using <moveLabel>, <connect> or <changePoints>.
+   * using {@link oveLabel}, <connect> or <changePoints>.
    */
   mouseUp(sender: EventSource, me: InternalMouseEvent) {
     // Workaround for wrong event source in Webkit
@@ -1523,7 +1520,7 @@ class EdgeHandler {
           index > InternalEvent.VIRTUAL_HANDLE
         ) {
           if (this.customHandles != null) {
-            const model = this.graph.getModel();
+            const model = this.graph.getDataModel();
 
             model.beginUpdate();
             try {
@@ -1561,7 +1558,7 @@ class EdgeHandler {
           }
 
           if (terminal) {
-            const model = this.graph.getModel();
+            const model = this.graph.getDataModel();
             const parent = edge.getParent();
 
             model.beginUpdate();
@@ -1681,7 +1678,7 @@ class EdgeHandler {
    * graph coordinates and applies the grid. Returns the given, modified
    * point instance.
    *
-   * @param point <mxPoint> to be converted.
+   * @param point {@link Point} to be converted.
    * @param gridEnabled Boolean that specifies if the grid should be applied.
    */
   convertPoint(point: Point, gridEnabled: boolean) {
@@ -1715,7 +1712,7 @@ class EdgeHandler {
    * @param y Integer that specifies the y-coordinate of the new location.
    */
   moveLabel(edgeState: CellState, x: number, y: number) {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
     let geometry = edgeState.cell.getGeometry();
 
     if (geometry != null) {
@@ -1768,7 +1765,7 @@ class EdgeHandler {
    * target terminal.
    * @param isClone Boolean indicating if the new connection should be a clone of
    * the old edge.
-   * @param me <mxMouseEvent> that contains the mouse up event.
+   * @param me {@link MouseEvent} that contains the mouse up event.
    */
   connect(
     edge: Cell,
@@ -1777,7 +1774,7 @@ class EdgeHandler {
     isClone: boolean,
     me: InternalMouseEvent
   ) {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
     const parent = edge.getParent();
 
     model.beginUpdate();
@@ -1800,7 +1797,7 @@ class EdgeHandler {
    * Changes the terminal point of the given edge.
    */
   changeTerminalPoint(edge: Cell, point: Point, isSource: boolean, clone: boolean) {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
 
     model.beginUpdate();
     try {
@@ -1831,7 +1828,7 @@ class EdgeHandler {
    * Changes the control points of the given edge in the graph model.
    */
   changePoints(edge: Cell, points: Point[], clone: boolean) {
-    const model = this.graph.getModel();
+    const model = this.graph.getDataModel();
     model.beginUpdate();
     try {
       if (clone) {
@@ -1899,7 +1896,7 @@ class EdgeHandler {
         geo.points.splice(index, 0, pt);
       }
 
-      this.graph.getModel().setGeometry(state.cell, geo);
+      this.graph.getDataModel().setGeometry(state.cell, geo);
       this.refresh();
       this.redraw();
     }
@@ -1915,7 +1912,7 @@ class EdgeHandler {
       if (geo != null && geo.points != null) {
         geo = geo.clone();
         (geo.points || []).splice(index - 1, 1);
-        this.graph.getModel().setGeometry(state.cell, geo);
+        this.graph.getDataModel().setGeometry(state.cell, geo);
         this.refresh();
         this.redraw();
       }
@@ -2121,8 +2118,8 @@ class EdgeHandler {
   /**
    * Updates and redraws the inner bends.
    *
-   * @param p0 <mxPoint> that represents the location of the first point.
-   * @param pe <mxPoint> that represents the location of the last point.
+   * @param p0 {@link Point} that represents the location of the first point.
+   * @param pe {@link Point} that represents the location of the last point.
    */
   redrawInnerBends(p0: Point, pe: Point) {
     for (let i = 1; i < this.bends.length - 1; i += 1) {
@@ -2275,7 +2272,7 @@ class EdgeHandler {
    * normally not need to be called as handlers are destroyed automatically
    * when the corresponding cell is deselected.
    */
-  destroy() {
+  onDestroy() {
     (<Graph>this.state.view.graph).removeListener(this.escapeHandler);
 
     this.marker.destroy();
@@ -2302,7 +2299,7 @@ class EdgeHandler {
     // @ts-expect-error Can be null when destroyed.
     this.labelShape = null;
 
-    this.constraintHandler.destroy();
+    this.constraintHandler.onDestroy();
     // @ts-expect-error Can be null when destroyed.
     this.constraintHandler = null;
 

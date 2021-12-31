@@ -6,7 +6,7 @@ import {
   Point,
   Outline,
   EdgeStyle,
-  mxKeyHandler,
+  KeyHandler,
   CompactTreeLayout,
   LayoutManager,
   CellOverlay,
@@ -87,8 +87,8 @@ const Template = ({ label, ...args }) => {
   let style = graph.getStylesheet().getDefaultVertexStyle();
   style.shape = 'label';
 
-  style.verticalAlign = constants.ALIGN_MIDDLE;
-  style.align = constants.ALIGN_LEFT;
+  style.verticalAlign = constants.ALIGN.MIDDLE;
+  style.align = constants.ALIGN.LEFT;
   style.spacingLeft = 54;
 
   style.gradientColor = '#7d85df';
@@ -124,7 +124,7 @@ const Template = ({ label, ...args }) => {
   style.edge = EdgeStyle.TopToBottom;
 
   // Stops editing on enter or escape keypress
-  const keyHandler = new mxKeyHandler(graph);
+  const keyHandler = new KeyHandler(graph);
 
   // Enables automatic layout on the graph and installs
   // a tree layout for all groups who's children are
@@ -196,8 +196,7 @@ const Template = ({ label, ...args }) => {
   const parent = graph.getDefaultParent();
 
   // Adds the root vertex of the tree
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const w = graph.container.offsetWidth;
     const v1 = graph.insertVertex(
       parent,
@@ -211,10 +210,7 @@ const Template = ({ label, ...args }) => {
     );
     graph.updateCellSize(v1);
     addOverlays(graph, v1, false);
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   const content = document.createElement('div');
   content.style.padding = '4px';
@@ -250,7 +246,7 @@ const Template = ({ label, ...args }) => {
 
   // Function to create the entries in the popupmenu
   function createPopupMenu(graph, menu, cell, evt) {
-    const model = graph.getModel();
+    const model = graph.getDataModel();
 
     if (cell != null) {
       if (cell.isVertex()) {
@@ -301,7 +297,7 @@ const Template = ({ label, ...args }) => {
   function addOverlays(graph, cell, addDeleteIcon) {
     let overlay = new CellOverlay(new ImageBox('images/add.png', 24, 24), 'Add child');
     overlay.cursor = 'hand';
-    overlay.align = constants.ALIGN_CENTER;
+    overlay.align = constants.ALIGN.CENTER;
     overlay.addListener(InternalEvent.CLICK, (sender, evt) => {
       addChild(graph, cell);
     });
@@ -312,8 +308,8 @@ const Template = ({ label, ...args }) => {
       overlay = new CellOverlay(new ImageBox('images/close.png', 30, 30), 'Delete');
       overlay.cursor = 'hand';
       overlay.offset = new Point(-4, 8);
-      overlay.align = constants.ALIGN_RIGHT;
-      overlay.verticalAlign = constants.ALIGN_TOP;
+      overlay.align = constants.ALIGN.RIGHT;
+      overlay.verticalAlign = constants.ALIGN.TOP;
       overlay.addListener(InternalEvent.CLICK, (sender, evt) => {
         deleteSubtree(graph, cell);
       });
@@ -323,7 +319,7 @@ const Template = ({ label, ...args }) => {
   }
 
   function addChild(graph, cell) {
-    const model = graph.getModel();
+    const model = graph.getDataModel();
     const parent = graph.getDefaultParent();
     let vertex;
 

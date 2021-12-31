@@ -1,6 +1,6 @@
 import {
   Graph,
-  RubberBand,
+  RubberBandHandler,
   Rectangle,
   constants,
   utils,
@@ -53,15 +53,14 @@ const Template = ({ label, ...args }) => {
   // graph.setResizeContainer(true);
 
   // Enables rubberband selection
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   // Gets the default parent for inserting new cells. This
   // is normally the first child of the root (ie. layer 0).
   const parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const v1 = graph.insertVertex(
       parent,
       null,
@@ -73,10 +72,7 @@ const Template = ({ label, ...args }) => {
       'shape=label;image=images/plus.png;imageWidth=16;imageHeight=16;spacingBottom=10;' +
         'fillColor=#adc5ff;gradientColor=#7d85df;glass=1;rounded=1;shadow=1;'
     );
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   return container;
 };

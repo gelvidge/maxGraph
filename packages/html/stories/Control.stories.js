@@ -1,7 +1,7 @@
 import {
   Graph,
   InternalEvent,
-  RubberBand,
+  RubberBandHandler,
   DomHelpers,
   ImageShape,
   Rectangle,
@@ -128,15 +128,14 @@ const Template = ({ label, ...args }) => {
   // graph.setResizeContainer(true);
 
   // Enables rubberband selection
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   // Gets the default parent for inserting new cells. This
   // is normally the first child of the root (ie. layer 0).
   const parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const v1 = graph.insertVertex({
       parent,
       value: 'Hello,',
@@ -154,10 +153,7 @@ const Template = ({ label, ...args }) => {
       source: v1,
       target: v2,
     });
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   graph.centerZoom = false;
 

@@ -1,6 +1,7 @@
 import Cell from '../cell/Cell';
 import CellArray from '../cell/CellArray';
-import { mixInto, sortCells } from '../../util/utils';
+import { mixInto } from '../../util/utils';
+import { sortCells } from '../../util/styleUtils';
 import Geometry from '../geometry/Geometry';
 import EventObject from '../event/EventObject';
 import InternalEvent from '../event/InternalEvent';
@@ -24,12 +25,12 @@ declare module '../Graph' {
     removeCellsFromParent: (cells?: CellArray | null) => CellArray;
     updateGroupBounds: (
       cells: CellArray,
-      border: number,
-      moveGroup: boolean,
-      topBorder: number,
-      rightBorder: number,
-      bottomBorder: number,
-      leftBorder: number
+      border?: number,
+      moveGroup?: boolean,
+      topBorder?: number,
+      rightBorder?: number,
+      bottomBorder?: number,
+      leftBorder?: number
     ) => CellArray;
     enterGroup: (cell: Cell) => void;
     exitGroup: () => void;
@@ -38,7 +39,7 @@ declare module '../Graph' {
 
 type PartialGraph = Pick<
   Graph,
-  | 'getModel'
+  | 'getDataModel'
   | 'fireEvent'
   | 'getView'
   | 'getDefaultParent'
@@ -115,19 +116,18 @@ const GroupingMixin: PartialType = {
         parent = <Cell>cells[0].getParent();
       }
 
-      this.getModel().beginUpdate();
-      try {
+      this.batchUpdate(() => {
         // Checks if the group has a geometry and
         // creates one if one does not exist
         if (group.getGeometry() == null) {
-          this.getModel().setGeometry(group, new Geometry());
+          this.getDataModel().setGeometry(group, new Geometry());
         }
 
         // Adds the group into the parent
-        let index = parent.getChildCount();
+        let index = (<Cell>parent).getChildCount();
         this.cellsAdded(
           new CellArray(group),
-          parent,
+          <Cell>parent,
           index,
           null,
           null,
@@ -138,26 +138,16 @@ const GroupingMixin: PartialType = {
 
         // Adds the children into the group and moves
         index = group.getChildCount();
-        this.cellsAdded(cells, group, index, null, null, false, false, false);
-        this.cellsMoved(cells, -bounds.x, -bounds.y, false, false, false);
+        this.cellsAdded(<CellArray>cells, group, index, null, null, false, false, false);
+        this.cellsMoved(<CellArray>cells, -bounds.x, -bounds.y, false, false, false);
 
         // Resizes the group
         this.cellsResized(new CellArray(group), [bounds], false);
 
         this.fireEvent(
-          new EventObject(
-            InternalEvent.GROUP_CELLS,
-            'group',
-            group,
-            'border',
-            border,
-            'cells',
-            cells
-          )
+          new EventObject(InternalEvent.GROUP_CELLS, { group, border, cells })
         );
-      } finally {
-        this.getModel().endUpdate();
-      }
+      });
     }
     return group;
   },
@@ -248,14 +238,15 @@ const GroupingMixin: PartialType = {
     }
 
     if (cells != null && cells.length > 0) {
-      this.getModel().beginUpdate();
-      try {
-        for (let i = 0; i < cells.length; i += 1) {
-          let children = cells[i].getChildren();
+      this.batchUpdate(() => {
+        const _cells = <CellArray>cells;
+
+        for (let i = 0; i < _cells.length; i += 1) {
+          let children = _cells[i].getChildren();
 
           if (children != null && children.length > 0) {
             children = children.slice();
-            const parent = <Cell>cells[i].getParent();
+            const parent = <Cell>_cells[i].getParent();
             const index = parent.getChildCount();
 
             this.cellsAdded(children, parent, index, null, null, true);
@@ -272,17 +263,15 @@ const GroupingMixin: PartialType = {
                 geo.y = (<Point>state.origin).y;
                 geo.relative = false;
 
-                this.getModel().setGeometry(child, geo);
+                this.getDataModel().setGeometry(child, geo);
               }
             }
           }
         }
 
-        this.removeCellsAfterUngroup(cells);
-        this.fireEvent(new EventObject(InternalEvent.UNGROUP_CELLS, 'cells', cells));
-      } finally {
-        this.getModel().endUpdate();
-      }
+        this.removeCellsAfterUngroup(_cells);
+        this.fireEvent(new EventObject(InternalEvent.UNGROUP_CELLS, { cells }));
+      });
     }
     return result;
   },
@@ -323,18 +312,15 @@ const GroupingMixin: PartialType = {
     if (cells == null) {
       cells = this.getSelectionCells();
     }
-    this.getModel().beginUpdate();
-    try {
+    this.batchUpdate(() => {
       const parent = this.getDefaultParent();
       const index = parent.getChildCount();
 
-      this.cellsAdded(cells, parent, index, null, null, true);
+      this.cellsAdded(<CellArray>cells, parent, index, null, null, true);
       this.fireEvent(
-        new EventObject(InternalEvent.REMOVE_CELLS_FROM_PARENT, 'cells', cells)
+        new EventObject(InternalEvent.REMOVE_CELLS_FROM_PARENT, { cells })
       );
-    } finally {
-      this.getModel().endUpdate();
-    }
+    });
     return cells;
   },
 
@@ -406,7 +392,7 @@ const GroupingMixin: PartialType = {
               bounds.height + 2 * border + size.y + topBorder + bottomBorder + size.height
             );
 
-            this.getModel().setGeometry(cells[i], geo);
+            this.getDataModel().setGeometry(cells[i], geo);
             this.moveCells(
               children,
               border + size.x - bounds.x + leftBorder,
@@ -445,7 +431,7 @@ const GroupingMixin: PartialType = {
    * hierarchy.
    */
   exitGroup() {
-    const root = this.getModel().getRoot();
+    const root = this.getDataModel().getRoot();
     const current = this.getCurrentRoot();
 
     if (current != null) {

@@ -101,20 +101,20 @@ const Template = ({ label, ...args }) => {
         state.secondLabel = new TextShape(
           secondLabel,
           new Rectangle(),
-          constants.ALIGN_LEFT,
-          constants.ALIGN_BOTTOM
+          constants.ALIGN.LEFT,
+          constants.ALIGN.BOTTOM
         );
 
         // Styles the label
         state.secondLabel.color = 'black';
         state.secondLabel.family = 'Verdana';
         state.secondLabel.size = 8;
-        state.secondLabel.fontStyle = constants.FONT_ITALIC;
+        state.secondLabel.fontStyle = constants.FONT.ITALIC;
         state.secondLabel.background = 'yellow';
         state.secondLabel.border = 'black';
         state.secondLabel.valign = 'bottom';
         state.secondLabel.dialect = state.shape.dialect;
-        state.secondLabel.dialect = constants.DIALECT_STRICTHTML;
+        state.secondLabel.dialect = constants.DIALECT.STRICTHTML;
         state.secondLabel.wrap = true;
         graph.cellRenderer.initializeLabel(state, state.secondLabel);
       }
@@ -158,8 +158,7 @@ const Template = ({ label, ...args }) => {
   const parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const v1 = graph.insertVertex(parent, null, 'Hello,', 30, 40, 80, 30);
     // Alternative solution of creating a second label by creating a realtive child vertex
     // with size (0, 0). This will not be selectable and only the label colors can be used
@@ -194,10 +193,7 @@ const Template = ({ label, ...args }) => {
     v21.geometry.offset = new Point(-8, -8);
     graph.updateCellSize(v21);
     const e1 = graph.insertEdge(parent, null, '', v1, v2);
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   const buttons = document.createElement('div');
   div.appendChild(buttons);

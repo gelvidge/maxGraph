@@ -1,12 +1,13 @@
 import {
   Graph,
-  RubberBand,
+  RubberBandHandler,
   ConnectionHandler,
   ImageBox,
   MaxToolbar,
-  Model,
-  mxKeyHandler,
+  GraphDataModel,
+  KeyHandler,
   Cell,
+  CellArray,
   Geometry,
   DragSource,
   DomHelpers,
@@ -64,7 +65,7 @@ const Template = ({ label, ...args }) => {
 
   // Creates the model and the graph inside the container
   // using the fastest rendering available on the browser
-  const model = new Model();
+  const model = new GraphDataModel();
   const graph = new Graph(container, model);
   graph.dropEnabled = true;
 
@@ -82,9 +83,9 @@ const Template = ({ label, ...args }) => {
   graph.setMultigraph(false);
 
   // Stops editing on enter or escape keypress
-  const keyHandler = new mxKeyHandler(graph);
+  const keyHandler = new KeyHandler(graph);
 
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   const addVertex = (icon, w, h, style) => {
     const vertex = new Cell(null, new Geometry(0, 0, w, h), style);
@@ -138,11 +139,11 @@ const Template = ({ label, ...args }) => {
       graph.stopEditing(false);
 
       const pt = graph.getPointForEvent(evt);
-      const vertex = graph.getModel().cloneCell(prototype);
+      const vertex = graph.getDataModel().cloneCell(prototype);
       vertex.geometry.x = pt.x;
       vertex.geometry.y = pt.y;
 
-      graph.setSelectionCells(graph.importCells([vertex], 0, 0, cell));
+      graph.setSelectionCells(graph.importCells(new CellArray(vertex), 0, 0, cell));
     };
 
     // Creates the image which is used as the drag icon (preview)

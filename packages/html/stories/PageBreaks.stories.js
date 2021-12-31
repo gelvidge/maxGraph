@@ -1,7 +1,7 @@
 import {
   Graph,
   Rectangle,
-  RubberBand,
+  RubberBandHandler,
   DomHelpers,
   InternalEvent,
 } from '@maxgraph/core';
@@ -53,21 +53,20 @@ const Template = ({ label, ...args }) => {
   // Removes header and footer from page height
   graph.pageFormat.height -= headerSize + footerSize;
 
-  const graphHandler = graph.getPlugin('GraphHandler');
+  const graphHandler = graph.getPlugin('SelectionHandler');
 
   // Takes zoom into account for moving cells
   graphHandler.scaleGrid = true;
 
   // Enables rubberband selection
-  if (args.rubberBand) new RubberBand(graph);
+  if (args.rubberBand) new RubberBandHandler(graph);
 
   // Gets the default parent for inserting new cells. This
   // is normally the first child of the root (ie. layer 0).
   const parent = graph.getDefaultParent();
 
   // Adds cells to the model in a single step
-  graph.getModel().beginUpdate();
-  try {
+  graph.batchUpdate(() => {
     const v1 = graph.insertVertex(parent, null, 'Hello,', 10, 10, 280, 330);
     const v2 = graph.insertVertex(
       parent,
@@ -79,10 +78,7 @@ const Template = ({ label, ...args }) => {
       330
     );
     const e1 = graph.insertEdge(parent, null, '', v1, v2);
-  } finally {
-    // Updates the display
-    graph.getModel().endUpdate();
-  }
+  });
 
   const buttons = document.createElement('div');
   div.appendChild(buttons);
